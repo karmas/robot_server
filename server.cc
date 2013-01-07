@@ -45,6 +45,7 @@
 #include <iomanip>
 #include <list>
 #include <map>
+#include <ctime>
 using namespace std;
 
 // some message display routines
@@ -83,7 +84,6 @@ class PCLdata {
 public:
   PCLdata(ArServerBase *server, ArRobot *robot, int tilt,
           int maxRange, int minRange);
-  void getDataOld(ArServerClient *serverClient, ArNetPacket *packet);
   void getData(ArServerClient *serverClient, ArNetPacket *packet);
 
   // members for pcl data
@@ -140,67 +140,7 @@ PCLdata::PCLdata(ArServerBase *server, ArRobot *robot, int tilt,
  * 	this request.
  * @func: Converts laser readings into 3d co-ordinates and stores them
  * 	in a packet which is sent to the client. The packet format is:
- * 	NUMBER OF READINGS (4 BYTES)
- * 	X CO-ORDINATE (DOUBLE)
- * 	Y CO-ORDINATE (DOUBLE)
- * 	Z CO-ORDINATE (DOUBLE)
- * 	X CO-ORDINATE (DOUBLE)
- * 	Y CO-ORDINATE (DOUBLE)
- * 	Z CO-ORDINATE (DOUBLE)
- * 	...
- */
-void PCLdata::getDataOld(ArServerClient *serverClient, ArNetPacket *packet)
-{
-  double dist_0, dist_1, angle_0, angle_1, 
-	 Location_x, Location_y, Location_theta,
-	 x, y, z;
-  std::list<ArPoseWithTime *> * readings;
-  std::list<ArPoseWithTime *>::iterator it;
-
-  ArNetPacket pclPacket;
-
-  readings = myLaser->getCurrentBuffer();
-
-  // add number of readings to packet
-  pclPacket.byte4ToBuf(readings->size());
-
-  for (it = readings->begin(); it != readings->end(); it++)
-  {
-    Location_x = myRobot->getX();
-    Location_y = myRobot->getY();
-    Location_theta = myRobot->getTh();
-
-    dist_0 = (*it)->findDistanceTo(ArPose(0, 0));
-    dist_1 = (*it)->findDistanceTo(ArPose(Location_x, Location_y));
-    angle_0 = ((*it)->findAngleTo(ArPose(0, 0)));
-    angle_1 = ((*it)->findAngleTo(ArPose(Location_x, Location_y)))-Location_theta;
-
-    /*
-    x = (dist_0 * cos(angle_0*pi/180) * cos(20*pi/180));
-    y = (dist_0 * sin(angle_0*pi/180));
-    z = (dist_1 * cos(angle_1*pi/180) * sin(20*pi/180));
-    */
-    x = (dist_0 * cos(angle_0*pi/180) * cos(myTilt*pi/180));
-    y = (dist_0 * sin(angle_0*pi/180));
-    z = (dist_1 * cos(angle_1*pi/180) * sin(myTilt*pi/180));
-
-    pclPacket.doubleToBuf(x);
-    pclPacket.doubleToBuf(y);
-    pclPacket.doubleToBuf(z);
-  }
-
-  // send the packet to the client
-  serverClient->sendPacketTcp(&pclPacket);
-}
-
-
-/* @param serverClient: Connection manager between the server and the 
- * 	client. It is provided by the Aria framework and is used to
- * 	transmit a packet to client.
- * @param packet: It is received from client. It does not exist for
- * 	this request.
- * @func: Converts laser readings into 3d co-ordinates and stores them
- * 	in a packet which is sent to the client. The packet format is:
+ * 	TIME STAMP (value returned by time function)
  * 	ROBOT X CO-ORDINATE (DOUBLE)
  * 	ROBOT Y CO-ORDINATE (DOUBLE)
  * 	NUMBER OF READINGS (4 BYTES)
@@ -229,8 +169,10 @@ void PCLdata::getData(ArServerClient *serverClient, ArNetPacket *packet)
   int readingRange = 0;
   vector<A3dpoint> points;
 
-  // Begin filling in the packet with robot's current location
   ArNetPacket pclPacket;
+  // Time stamp the packet
+  pclPacket.byte4ToBuf(static_cast<int>(time(NULL)));
+  // Fill robot location
   pclPacket.doubleToBuf(myRobot->getX());
   pclPacket.doubleToBuf(myRobot->getY());
 
