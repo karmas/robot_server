@@ -46,6 +46,7 @@
 #include <list>
 #include <map>
 #include <ctime>
+#include <sys/time.h>
 using namespace std;
 
 // some message display routines
@@ -85,6 +86,7 @@ public:
   PCLdata(ArServerBase *server, ArRobot *robot, int tilt,
           int maxRange, int minRange);
   void getData(ArServerClient *serverClient, ArNetPacket *packet);
+  long getElapsedTime();
 
   // members for pcl data
   static const double pi = 3.14159165f;
@@ -133,6 +135,34 @@ PCLdata::PCLdata(ArServerBase *server, ArRobot *robot, int tilt,
   echo("min laser range", myMinRange);
 }
 
+// The first time this function is run, a starting time is set.
+// Further calls return the time elapsed from that start time.
+// This is necessary to get smaller values for time so that
+// millisecond precision can be packet into the same data.
+// Hence first packet is marked with time value of 0.
+long PCLdata::getElapsedTime()
+{
+  static timeval startTime;
+  timeval currTime;
+  static bool firstTime = true;
+
+  // set the start time
+  if (firstTime) {
+    firstTime = false;
+    gettimeofday(&startTime, NULL);
+    return 0;
+  }
+  else {
+    gettimeofday(&currTime, NULL);
+    long secondsPassed = currTime.tv_sec - startTime.tv_sec;
+    // first get milliseconds
+    long milliSecondsPassed = currTime.tv_usec/1000;
+    // add the seconds passed to it
+    milliSecondsPassed += secondsPassed*1000;
+    return milliSecondsPassed;
+  }
+}
+
 /* @param serverClient: Connection manager between the server and the 
  * 	client. It is provided by the Aria framework and is used to
  * 	transmit a packet to client.
@@ -140,7 +170,7 @@ PCLdata::PCLdata(ArServerBase *server, ArRobot *robot, int tilt,
  * 	this request.
  * @func: Converts laser readings into 3d co-ordinates and stores them
  * 	in a packet which is sent to the client. The packet format is:
- * 	TIME STAMP (value returned by time function)
+ * 	TIME STAMP
  * 	ROBOT X CO-ORDINATE (DOUBLE)
  * 	ROBOT Y CO-ORDINATE (DOUBLE)
  * 	ROBOT HEADING (DOUBLE measured in degrees)
@@ -172,7 +202,9 @@ void PCLdata::getData(ArServerClient *serverClient, ArNetPacket *packet)
 
   ArNetPacket pclPacket;
   // Time stamp the packet
-  pclPacket.byte4ToBuf(static_cast<int>(time(NULL)));
+  long timeStamp = getElapsedTime();
+  pclPacket.byte4ToBuf(timeStamp);
+
   // Fill robot location and heading
   pclPacket.doubleToBuf(myRobot->getX());
   pclPacket.doubleToBuf(myRobot->getY());
