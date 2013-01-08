@@ -143,6 +143,7 @@ PCLdata::PCLdata(ArServerBase *server, ArRobot *robot, int tilt,
  * 	TIME STAMP (value returned by time function)
  * 	ROBOT X CO-ORDINATE (DOUBLE)
  * 	ROBOT Y CO-ORDINATE (DOUBLE)
+ * 	ROBOT HEADING (DOUBLE measured in degrees)
  * 	NUMBER OF READINGS (4 BYTES)
  * 	X CO-ORDINATE (DOUBLE)
  * 	Y CO-ORDINATE (DOUBLE)
@@ -172,9 +173,10 @@ void PCLdata::getData(ArServerClient *serverClient, ArNetPacket *packet)
   ArNetPacket pclPacket;
   // Time stamp the packet
   pclPacket.byte4ToBuf(static_cast<int>(time(NULL)));
-  // Fill robot location
+  // Fill robot location and heading
   pclPacket.doubleToBuf(myRobot->getX());
   pclPacket.doubleToBuf(myRobot->getY());
+  pclPacket.doubleToBuf(myRobot->getTh());
 
   // construct a list of valid 3d co-ordinates for the laser readings
   readings = myLaser->getRawReadings();
