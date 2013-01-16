@@ -133,6 +133,7 @@ PCLdata::PCLdata(ArServerBase *server, ArRobot *robot, int tilt,
 
   echo("max laser range", myMaxRange);
   echo("min laser range", myMinRange);
+  echo("units for laser", myLaser->getUnitsChoice());
 }
 
 // The first time this function is run, a starting time is set.
@@ -337,7 +338,7 @@ void getCommandLineArguments(ArArgumentParser *parser,
     index = getIndexForArg(argc, argv, tiltArg);
     if (index != -1) {
       *tilt = atoi(argv[index]);
-      cout << "laser tilt = " << tilt << " degrees" << endl;
+      cout << "laser tilt = " << *tilt << " degrees" << endl;
     }
   }
 
