@@ -44,7 +44,8 @@ void configureRobot(ArArgumentParser &parser,
 		    int *maxRange,
 		    int *minRange)
 {
-  const int leftMargin = 5;
+  const int rightPad = 2;
+  const char sepChar = '|';
   const char *configArgs[] = {
     "tilt",
     "laserToRobotTranslationX",
@@ -54,6 +55,18 @@ void configureRobot(ArArgumentParser &parser,
     "minRange"
   };
 
+  // get longest argument name
+  int longestArgIndex = 0;
+  int longestArgLength = strlen(configArgs[longestArgIndex]);
+  for (int i = 1; i < sizeof(configArgs)/sizeof(configArgs[0]); i++) {
+    if (strlen(configArgs[i]) > longestArgLength) {
+      longestArgIndex = i;
+      longestArgLength = strlen(configArgs[longestArgIndex]);
+    }
+  }
+
+  int nameColLength = longestArgLength + 1;
+
   std::cout << "Custom configuration options" << std::endl;
 
   int val = INVALID;
@@ -61,8 +74,10 @@ void configureRobot(ArArgumentParser &parser,
   if (parser.checkParameterArgumentInteger(configArgs[0], &val) &&
       val != INVALID) {
     *tilt = val;
-    std::cout << std::setw(leftMargin) << "| ";
-    std::cout << "tilt = " << val << " degrees" << std::endl;
+    std::cout << std::setw(rightPad) << sepChar
+      << std::setw(nameColLength) << "tilt" 
+      << std::setw(rightPad) << sepChar << " "
+      << val << " degrees" << std::endl;
   }
 
   // laser to robot translation values
@@ -70,25 +85,28 @@ void configureRobot(ArArgumentParser &parser,
   if (parser.checkParameterArgumentInteger(configArgs[1], &val) &&
       val != INVALID) {
     laserToRobotTranslation.x = val;
-    std::cout << std::setw(leftMargin) << "| ";
-    std::cout << "laserToRobotTranslationX = " << val 
-      << " mm" << std::endl;
+    std::cout << std::setw(rightPad) << sepChar
+      << std::setw(nameColLength) << "laserToRobotTranslationX" 
+      << std::setw(rightPad) << sepChar << " "
+      << val << " mm" << std::endl;
   }
   val = INVALID;
   if (parser.checkParameterArgumentInteger(configArgs[2], &val) &&
       val != INVALID) {
     laserToRobotTranslation.y = val;
-    std::cout << std::setw(leftMargin) << "| ";
-    std::cout << "laserToRobotTranslationY = " << val 
-      << " mm" << std::endl;
+    std::cout << std::setw(rightPad) << sepChar
+      << std::setw(nameColLength) << "laserToRobotTranslationY" 
+      << std::setw(rightPad) << sepChar << " "
+      << val << " mm" << std::endl;
   }
   val = INVALID;
   if (parser.checkParameterArgumentInteger(configArgs[3], &val) &&
       val != INVALID) {
     laserToRobotTranslation.z = val;
-    std::cout << std::setw(leftMargin) << "| ";
-    std::cout << "laserToRobotTranslationZ = " << val 
-      << " mm" << std::endl;
+    std::cout << std::setw(rightPad) << sepChar
+      << std::setw(nameColLength) << "laserToRobotTranslationZ" 
+      << std::setw(rightPad) << sepChar << " "
+      << val << " mm" << std::endl;
   }
 
   // laser range values
@@ -96,15 +114,19 @@ void configureRobot(ArArgumentParser &parser,
   if (parser.checkParameterArgumentInteger(configArgs[4], &val) &&
       val != INVALID) {
     *maxRange = val;
-    std::cout << std::setw(leftMargin) << "| ";
-    std::cout << "maxRange" << val << " mm" << std::endl;
+    std::cout << std::setw(rightPad) << sepChar
+      << std::setw(nameColLength) << "maxRange" 
+      << std::setw(rightPad) << sepChar << " "
+      << val << " mm" << std::endl;
   }
   val = INVALID;
   if (parser.checkParameterArgumentInteger(configArgs[5], &val) &&
       val != INVALID) {
     *minRange = val;
-    std::cout << std::setw(leftMargin) << "| ";
-    std::cout << "minRange" << val << " mm" << std::endl;
+    std::cout << std::setw(rightPad) << sepChar
+      << std::setw(nameColLength) << "minRange" 
+      << std::setw(rightPad) << sepChar << " "
+      << val << " mm" << std::endl;
   }
 }
 
