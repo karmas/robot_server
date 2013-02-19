@@ -28,6 +28,10 @@
  * command line argument -minrange n
  * readings lower than this distance will be discarded
  * n is in millimeters
+ *
+ * It is easier to put the command line arguments in a single line in a
+ * file and start the program by specifying the file with -file arg.
+ * e.g. server -file config.txt
  */
 
 
@@ -41,16 +45,25 @@ int main(int argc, char **argv)
   // necessary initialization of Aria framework
   Aria::init();
 
-  // parse command line arguments
   ArArgumentParser parser(&argc, argv);
-  parser.addDefaultArgument("-laserDegrees 180 -laserIncrement half");
+
+  // check for config file
+  const char *fileName = getConfigFile(parser);
+  if (fileName != NULL) {
+    parser.addDefaultArgumentFile(fileName);
+  }
+  // load arguments from file
   parser.loadDefaultArguments();
 
+  // configuration variables
   int tilt = 0;
+  A3dpoint laserToRobotTranslation(0,0,0);
   int maxRange = INVALID;
   int minRange = INVALID;
-  getCommandLineArguments(&parser, argc, argv, 
-                          &tilt, &maxRange, &minRange);
+
+  // get configuration information from arguments file
+  configureRobot(parser, &tilt, laserToRobotTranslation,
+      		 &maxRange, &minRange);
 
   // connect to robot on which the server will exist
   ArRobot robot;
@@ -103,7 +116,8 @@ int main(int argc, char **argv)
   ArServerModeWander modeWander(&server, &robot);
 
   // This object handles sending of PCL data packets from server 
-  PCLdata pcl(&server, &robot, tilt, maxRange, minRange);
+  PCLdata pcl(&server, &robot, tilt, laserToRobotTranslation,
+      	      maxRange, minRange);
 
   // Need to add the new type of packet to the server since it is not
   // built into the Aria library

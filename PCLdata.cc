@@ -3,7 +3,6 @@
 #include <sys/time.h>
 
 #include "PCLdata.h"
-#include "utils.h"
 
 
 const double PCLdata::toRadian = pi/180;
@@ -13,8 +12,10 @@ const double PCLdata::toRadian = pi/180;
 // also sets maxrange and minrange to laser max and zero if the
 // values are invalid
 PCLdata::PCLdata(ArServerBase *server, ArRobot *robot, int tilt,
+                 const A3dpoint &laserToRobotTranslation,
                  int maxRange, int minRange)
   : myServer(server), myRobot(robot), myTilt(tilt),
+    myLaserToRobotTranslation(laserToRobotTranslation),
     myMaxRange(maxRange), myMinRange(minRange),
     pclftr(this, &PCLdata::getData), myLaser(NULL)
 {
@@ -68,9 +69,6 @@ long PCLdata::getElapsedTime()
   }
 }
 
-A3dpoint downRobotTrans(265, 0.0, 109);
-A3dpoint upRobotTrans(252, 0.0, 134);
-A3dpoint laserToRobotTrans = downRobotTrans;
 
 /* @param serverClient: Connection manager between the server and the 
  * 	client. It is provided by the Aria framework and is used to
@@ -157,8 +155,9 @@ void PCLdata::getData(ArServerClient *serverClient, ArNetPacket *packet)
       localZ = rawX * sin(myTilt*toRadian);
 
       // translate to robot reference frame
-      localX += laserToRobotTrans.x;
-      localZ += laserToRobotTrans.z;
+      localX += myLaserToRobotTranslation.x;
+      localY += myLaserToRobotTranslation.y;
+      localZ += myLaserToRobotTranslation.z;
 
       // rotate to global reference frame
       alpha = reading->getThTaken() * toRadian;
