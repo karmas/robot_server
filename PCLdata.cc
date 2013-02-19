@@ -68,6 +68,10 @@ long PCLdata::getElapsedTime()
   }
 }
 
+A3dpoint downRobotTrans(265, 0.0, 109);
+A3dpoint upRobotTrans(252, 0.0, 134);
+A3dpoint laserToRobotTrans = downRobotTrans;
+
 /* @param serverClient: Connection manager between the server and the 
  * 	client. It is provided by the Aria framework and is used to
  * 	transmit a packet to client.
@@ -87,12 +91,20 @@ long PCLdata::getElapsedTime()
  * 	Y CO-ORDINATE (DOUBLE)
  * 	Z CO-ORDINATE (DOUBLE)
  * 	...
+ *
+ * Need to translate laser based co-ordinates to robot frame before
+ * rotating using robot heading
  */
 void PCLdata::getData(ArServerClient *serverClient, ArNetPacket *packet)
 {
   const std::list<ArSensorReading *> * readings = NULL;
   std::list<ArSensorReading *>::const_iterator it;
   const ArSensorReading *reading = NULL;
+
+  double distance = 0.0;
+  double rawX = 0.0;
+  double rawY = 0.0;
+  double rawZ = 0.0;
 
   double localX = 0.0;
   double localY = 0.0;
@@ -101,6 +113,8 @@ void PCLdata::getData(ArServerClient *serverClient, ArNetPacket *packet)
   double globalY = 0.0;
   // angle between local x-axis and global x-axis
   double alpha = 0.0;
+  // angle of laser reading
+  double theta = 0.0;
 
   int readingRange = 0;
   std::vector<A3dpoint> points;
@@ -126,20 +140,32 @@ void PCLdata::getData(ArServerClient *serverClient, ArNetPacket *packet)
     if (!reading->getIgnoreThisReading() &&	// valid reading
 	readingRange <= myMaxRange &&	// upper limit
 	readingRange >= myMinRange) {	// lower limit
-      // convert to local co-ordinates for sensor
-      localX = reading->getLocalX() * cos(myTilt*toRadian);
-      localY = reading->getLocalY();
-      localZ = reading->getLocalX() * sin(myTilt*toRadian);
+      // the angle made by the reading
+      theta = reading->getSensorTh() * toRadian;
+      // the distance to the point
+      distance = reading->getRange();
 
-      // maybe add robot's height to z value
-      localZ += 0.0;
+      // tilted laser as reference frame
+      rawX = distance * cos(theta);
+      rawY = distance * sin(theta);
+      rawZ = 0.0;
 
-      // find the x and y values in the global unrotated axis
-      alpha = reading->getThTaken();
-      globalX = localX*cos(alpha*toRadian) - localY*sin(alpha*toRadian);
-      globalY = localY*cos(alpha*toRadian) + localX*sin(alpha*toRadian);
+      // rotate on z-axis to account for the tilt
+      // now the laser reference frame is parallel with robot's
+      localX = rawX * cos(myTilt*toRadian);
+      localY = rawY;
+      localZ = rawX * sin(myTilt*toRadian);
 
-      // translate on x-y plane to convert to global co-ordinates
+      // translate to robot reference frame
+      localX += laserToRobotTrans.x;
+      localZ += laserToRobotTrans.z;
+
+      // rotate to global reference frame
+      alpha = reading->getThTaken() * toRadian;
+      globalX = localX*cos(alpha) - localY*sin(alpha);
+      globalY = localY*cos(alpha) + localX*sin(alpha);
+
+      // translate to global reference frame
       globalX += myRobot->getX();
       globalY += myRobot->getY();
 

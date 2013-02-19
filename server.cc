@@ -10,16 +10,8 @@
  * An additional service for laser readings converted to 3d co-ordinates
  * is provided by PCLdata class.
  *
- * Multiple instances of the server program can be run on multiple robots.
- * For example:
- *   ./server -sp 7000
- * will start the server on port 7000
- *
- * To use with MobileSim run it with first:
- *   MobileSim -R p3dx
- *
- * Then each instance of server program will generate a new robot on
- * MobileSim.
+ * Start a server at TCP port 7272 on a robot at TCP port 8101.
+ *   server -rrtp 8101 -sp 7272
  *
  * command line argument -cl
  * needed to connect laser
