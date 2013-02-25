@@ -14,7 +14,6 @@ public:
       	  const A3dpoint &laserToRobotTranslation,
           int maxRange, int minRange);
   void getData(ArServerClient *serverClient, ArNetPacket *packet);
-  long getElapsedTime();
 
   // members for pcl data
   static const double pi = 3.14159165f;
