@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.6)
 project(SERVER)
 
 # Source files
-set(SRC utils.cc PCLdata.cc server.cc)
+set(SRC utils.cc SensorData.cc server.cc)
 # Program name
 set(PROG server)
 

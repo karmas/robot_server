@@ -2,22 +2,22 @@
 #include <ctime>
 #include <sys/time.h>
 
-#include "PCLdata.h"
+#include "SensorData.h"
 
 
-const double PCLdata::toRadian = pi/180;
+const double SensorData::toRadian = pi/180;
 
 
 // sets the laser pointer now to the first laser in the robot
 // also sets maxrange and minrange to laser max and zero if the
 // values are invalid
-PCLdata::PCLdata(ArServerBase *server, ArRobot *robot, int tilt,
+SensorData::SensorData(ArServerBase *server, ArRobot *robot, int tilt,
                  const A3dpoint &laserToRobotTranslation,
                  int maxRange, int minRange)
   : myServer(server), myRobot(robot), myTilt(tilt),
     myLaserToRobotTranslation(laserToRobotTranslation),
     myMaxRange(maxRange), myMinRange(minRange),
-    pclftr(this, &PCLdata::getData), myLaser(NULL)
+    pclftr(this, &SensorData::getData), myLaser(NULL)
 {
   std::map<int, ArLaser *> *laserMap = myRobot->getLaserMap();
   std::map<int, ArLaser *>::iterator it;
@@ -63,7 +63,7 @@ PCLdata::PCLdata(ArServerBase *server, ArRobot *robot, int tilt,
  * Need to translate laser based co-ordinates to robot frame before
  * rotating using robot heading
  */
-void PCLdata::getData(ArServerClient *serverClient, ArNetPacket *packet)
+void SensorData::getData(ArServerClient *serverClient, ArNetPacket *packet)
 {
   const std::list<ArSensorReading *> * readings = NULL;
   std::list<ArSensorReading *>::const_iterator it;

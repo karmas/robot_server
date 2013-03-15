@@ -34,7 +34,7 @@
 
 
 #include "utils.h"
-#include "PCLdata.h"
+#include "SensorData.h"
 
 
 // main program
@@ -102,7 +102,7 @@ int main(int argc, char **argv)
   ArServerModeWander modeWander(&server, &robot);
 
   // This object handles sending of PCL data packets from server 
-  PCLdata pcl(&server, &robot, tilt, laserToRobotTranslation,
+  SensorData pcl(&server, &robot, tilt, laserToRobotTranslation,
       	      maxRange, minRange);
 
   // Need to add the new type of packet to the server since it is not

@@ -8,9 +8,9 @@
 
 // This class houses the method which is called when a request packet
 // is of type "getPCL". 
-class PCLdata {
+class SensorData {
 public:
-  PCLdata(ArServerBase *server, ArRobot *robot, int tilt,
+  SensorData(ArServerBase *server, ArRobot *robot, int tilt,
       	  const A3dpoint &laserToRobotTranslation,
           int maxRange, int minRange);
   void getData(ArServerClient *serverClient, ArNetPacket *packet);
@@ -26,7 +26,7 @@ public:
   int myMaxRange;
   int myMinRange;
 
-  ArFunctor2C<PCLdata, ArServerClient *, ArNetPacket *> pclftr;
+  ArFunctor2C<SensorData, ArServerClient *, ArNetPacket *> pclftr;
   ArLaser *myLaser;
 };
 
