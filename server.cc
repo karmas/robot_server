@@ -80,6 +80,13 @@ int main(int argc, char **argv)
     Aria::exit(1);
   }
 
+  // connect to the stereocamera and reset it
+  ArDPPTU thePTZ(&robot);  // directed perception pan tilt unit
+  if (!thePTZ.init()) {
+    echo("unable to initialize stereocamera");
+  }
+  ArUtil::sleep(1000);
+
   // add sonar to robot otherwise robot will not move forward
   ArSonarDevice sonar;
   robot.addRangeDevice(&sonar);

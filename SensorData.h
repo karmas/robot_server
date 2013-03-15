@@ -6,6 +6,7 @@
 
 #include "utils.h"
 
+
 // Abstract base class for robot sensor data
 class SensorData {
 public:
@@ -17,6 +18,7 @@ protected:
   virtual void send(ArServerClient *serverClient, ArNetPacket *packet) = 0;
   virtual void addData() = 0;
 };
+
 
 // Sends laser data
 class SensorDataLaser : public SensorData {
@@ -39,5 +41,16 @@ private:
   int myMinRange;
 };
 
+
+// Sends stereo camera data
+class SensorDataStereoCam : public SensorData {
+public:
+  SensorDataStereoCam(ArServerBase *server, ArRobot *robot);
+  void send(ArServerClient *serverClient, ArNetPacket *packet);
+  void addData();
+private:
+  ArFunctor2C<SensorDataStereoCam, ArServerClient *, ArNetPacket *> 
+    mySendFtr;
+};
 
 #endif
