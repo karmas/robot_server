@@ -101,21 +101,9 @@ int main(int argc, char **argv)
   ArServerModeRatioDrive modeRatioDrive(&server, &robot);
   ArServerModeWander modeWander(&server, &robot);
 
-  // This object handles sending of PCL data packets from server 
-  SensorData pcl(&server, &robot, tilt, laserToRobotTranslation,
-      	      maxRange, minRange);
-
-  // Need to add the new type of packet to the server since it is not
-  // built into the Aria library
-  server.addData("getPCL",		// packet type name
-                 "send PCL data",	// short description
-		 &pcl.pclftr,		// the functor which is called
-		 			// when client requests this
-					// type of packet
-                 "no arguments",	// description of arguments
-		 			// needed from client
-		 "sends a packet containing 3d co-ordinates");
-
+  // This object handles sending of laser data packets from server 
+  SensorDataLaser sdl(&server, &robot, tilt, laserToRobotTranslation,
+      		      maxRange, minRange);
 
   // Enable the motors
   robot.enableMotors();

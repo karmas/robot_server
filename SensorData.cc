@@ -5,19 +5,27 @@
 #include "SensorData.h"
 
 
-const double SensorData::toRadian = pi/180;
+SensorData::SensorData(ArServerBase *server, ArRobot *robot)
+  : myServer(server), myRobot(robot)
+{
+}
+
+
+const double SensorDataLaser::pi = 3.14159165f;
+const double SensorDataLaser::toRadian = pi/180;
 
 
 // sets the laser pointer now to the first laser in the robot
 // also sets maxrange and minrange to laser max and zero if the
 // values are invalid
-SensorData::SensorData(ArServerBase *server, ArRobot *robot, int tilt,
-                 const A3dpoint &laserToRobotTranslation,
-                 int maxRange, int minRange)
-  : myServer(server), myRobot(robot), myTilt(tilt),
+SensorDataLaser::SensorDataLaser(ArServerBase *server, ArRobot *robot, 
+    int tilt, const A3dpoint &laserToRobotTranslation,
+    int maxRange, int minRange)
+  : SensorData(server, robot),
+    mySendFtr(this, &SensorDataLaser::send), 
+    myLaser(NULL), myTilt(tilt),
     myLaserToRobotTranslation(laserToRobotTranslation),
-    myMaxRange(maxRange), myMinRange(minRange),
-    pclftr(this, &SensorData::getData), myLaser(NULL)
+    myMaxRange(maxRange), myMinRange(minRange)
 {
   std::map<int, ArLaser *> *laserMap = myRobot->getLaserMap();
   std::map<int, ArLaser *>::iterator it;
@@ -39,7 +47,10 @@ SensorData::SensorData(ArServerBase *server, ArRobot *robot, int tilt,
   echo("max laser range", myMaxRange);
   echo("min laser range", myMinRange);
   echo("units for laser", myLaser->getUnitsChoice());
+
+  addData();
 }
+
 
 /* @param serverClient: Connection manager between the server and the 
  * 	client. It is provided by the Aria framework and is used to
@@ -63,7 +74,7 @@ SensorData::SensorData(ArServerBase *server, ArRobot *robot, int tilt,
  * Need to translate laser based co-ordinates to robot frame before
  * rotating using robot heading
  */
-void SensorData::getData(ArServerClient *serverClient, ArNetPacket *packet)
+void SensorDataLaser::send(ArServerClient *serverClient, ArNetPacket *packet)
 {
   const std::list<ArSensorReading *> * readings = NULL;
   std::list<ArSensorReading *>::const_iterator it;
@@ -152,4 +163,16 @@ void SensorData::getData(ArServerClient *serverClient, ArNetPacket *packet)
 
   // send the packet to the client
   serverClient->sendPacketTcp(&pclPacket);
+}
+
+
+// Adds service to the server
+void SensorDataLaser::addData()
+{
+  myServer->addData("getSensorDataLaser",// packet name
+     		    "sends laser data",	// description
+     		    &(this->mySendFtr),	// callback functor	
+     		    "no arguments",	// description of arguments
+     		   			// needed from client
+     		    "sends a packet containing 3d co-ordinates");
 }

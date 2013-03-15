@@ -6,28 +6,37 @@
 
 #include "utils.h"
 
-// This class houses the method which is called when a request packet
-// is of type "getPCL". 
+// Abstract base class for robot sensor data
 class SensorData {
 public:
-  SensorData(ArServerBase *server, ArRobot *robot, int tilt,
-      	  const A3dpoint &laserToRobotTranslation,
-          int maxRange, int minRange);
-  void getData(ArServerClient *serverClient, ArNetPacket *packet);
-
-  // members for pcl data
-  static const double pi = 3.14159165f;
-  static const double toRadian;
-
+  SensorData(ArServerBase *server, ArRobot *robot);
+protected:
   ArServerBase *myServer;
   ArRobot *myRobot;
+
+  virtual void send(ArServerClient *serverClient, ArNetPacket *packet) = 0;
+  virtual void addData() = 0;
+};
+
+// Sends laser data
+class SensorDataLaser : public SensorData {
+public:
+  SensorDataLaser(ArServerBase *server, ArRobot *robot,
+      		  int tilt, const A3dpoint &laserToRobotTranslation,
+		  int maxRange, int minRange);
+  void send(ArServerClient *serverClient, ArNetPacket *packet);
+  void addData();
+
+  static const double pi;
+  static const double toRadian;
+
+private:
+  ArFunctor2C<SensorDataLaser, ArServerClient *, ArNetPacket *> mySendFtr;
+  ArLaser *myLaser;
   int myTilt;
   A3dpoint myLaserToRobotTranslation;
   int myMaxRange;
   int myMinRange;
-
-  ArFunctor2C<SensorData, ArServerClient *, ArNetPacket *> pclftr;
-  ArLaser *myLaser;
 };
 
 
