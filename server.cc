@@ -1,8 +1,6 @@
 /* This program creates a server which resides on a robot. The server
  * provides the following Aria services.
  *
-   ArServerInfoRobot
-   ArServerInfoSensor
    ArServerModeStop
    ArServerModeRatioDrive
    ArServerModeWander
@@ -47,37 +45,36 @@ int main(int argc, char **argv)
 
   ArArgumentParser parser(&argc, argv);
 
-  // check for config file
-  const char *fileName = getConfigFile(parser);
-  if (fileName != NULL) {
-    parser.addDefaultArgumentFile(fileName);
-  }
-  // load arguments from file
-  parser.loadDefaultArguments();
-
   // configuration variables
   int tilt = 0;
   A3dpoint laserToRobotTranslation(0,0,0);
   int maxRange = INVALID;
   int minRange = INVALID;
 
-  // get configuration information from arguments file
-  configureRobot(parser, &tilt, laserToRobotTranslation,
-      		 &maxRange, &minRange);
+  // check for config file
+  const char *fileName = getConfigFile(parser);
+  if (fileName != NULL) {
+    parser.addDefaultArgumentFile(fileName);
+    // load arguments from file
+    parser.loadDefaultArguments();
+    // get configuration information from arguments file
+    configureRobot(parser, &tilt, laserToRobotTranslation,
+		   &maxRange, &minRange);
+  }
+
+  // parse command line arguments for configuration information
+  Aria::parseArgs();
 
   // connect to robot on which the server will exist
   ArRobot robot;
   ArRobotConnector robotConnector(&parser, &robot);
   if (!robotConnector.connectRobot()) {
-    echo("unable to connect robot");
+    echo("unable to connect to robot");
     Aria::exit(1);
   }
 
   // connect to the laser
   ArLaserConnector laserConnector(&parser, &robot, &robotConnector);
-  // ArLaserConnector uses the command line arguments or configuration
-  // file to configure the laser so parse those first
-  Aria::parseArgs();
   if (!laserConnector.connectLasers()) {
     echo("unable to connect to laser");
     Aria::exit(1);
@@ -91,24 +88,13 @@ int main(int argc, char **argv)
   // Default port is 7272
   ArServerBase server;
   ArServerSimpleOpener serverOpener(&parser);
-  // Parse command line arguments which may contain user defined
-  // server port number
-  Aria::parseArgs();
   if (!serverOpener.open(&server)) {
     echo("unable to open server");
     Aria::exit(1);
   }
 
-  // checking of command line arguments
-  if (!Aria::parseArgs() || !parser.checkHelpAndWarnUnparsed()) {
-    echo("unable to parse command line arguments");
-    Aria::exit(1);
-  }
-
-  // Information about robot such as speed and heading
-  ArServerInfoRobot serverInfoRobot(&server, &robot);
-  // Information from laser
-  ArServerInfoSensor serverInfoSensor(&server, &robot);
+  // warn about wrong command line arguments
+  parser.checkHelpAndWarnUnparsed();
 
   // Some modes which allow the robot to stop, drive or wander when
   ArServerModeStop modeStop(&server, &robot);
@@ -130,10 +116,6 @@ int main(int argc, char **argv)
 		 			// needed from client
 		 "sends a packet containing 3d co-ordinates");
 
-  /*
-  ArServerHandlerCommands commands(&server);
-  ArServerSimpleComUC uCCommands(&commands, &robot);
-  */
 
   // Enable the motors
   robot.enableMotors();

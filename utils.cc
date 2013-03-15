@@ -1,5 +1,6 @@
 #include <iomanip>
 #include <list>
+#include <fstream>
 
 #include "Aria.h"
 #include "ArNetworking.h"
@@ -30,10 +31,20 @@ const char *getConfigFile(ArArgumentParser &parser)
 {
   const char *fileName = NULL;
 
+  // check for -file argument and name of file
   if (parser.checkParameterArgumentString("file", &fileName) &&
       fileName != NULL) {
-    return fileName;
+    // check if file exists
+    std::ifstream inf(fileName);
+    if (inf) {
+      inf.close();
+      return fileName;
+    }
+    else {
+      echo("Missing configuration file", fileName);
+    }
   }
+  echo("Not using custom configuration file");
   return NULL;
 }
 
