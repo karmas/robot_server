@@ -88,6 +88,7 @@ int main(int argc, char **argv)
   // Default port is 7272
   ArServerBase server;
   ArServerSimpleOpener serverOpener(&parser);
+  Aria::parseArgs();
   if (!serverOpener.open(&server)) {
     echo("unable to open server");
     Aria::exit(1);
