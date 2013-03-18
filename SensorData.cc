@@ -189,7 +189,8 @@ void SensorDataLaser::addData()
 SensorDataStereoCam::SensorDataStereoCam(ArServerBase *server, 
     ArRobot *robot)
   : SensorData(server, robot),
-    mySendFtr(this, &SensorDataStereoCam::send)
+    mySendFtr(this, &SensorDataStereoCam::send),
+    myCam(new stereoCam)
 {
   addData();
 }
@@ -228,11 +229,8 @@ void SensorDataStereoCam::send(ArServerClient *serverClient,
   IplImage *colorImg = 
     cvCreateImage(cvSize(width,height), IPL_DEPTH_8U, 3);
 
-  // It is necessary to instantiate a stereoCam object each
-  // time to get new frames.
-  stereoCam cam;
   // Capture an image with colors and another with co-ordinates
-  cam.doStereoFrame(colorImg, NULL, coordImg, NULL);
+  myCam->doStereoFrame(colorImg, NULL, coordImg, NULL);
 
   // Get information from the co-ordinates image
   int coordImgHeight = coordImg->height;
@@ -253,7 +251,7 @@ void SensorDataStereoCam::send(ArServerClient *serverClient,
   int colorImgRowCount = colorImg->widthStep/(sizeof(char));
 
   double coordVal;
-  int colorVal;
+  char colorVal;
   int startIndex = 0;
   int endIndex = 25;
 

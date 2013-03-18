@@ -583,6 +583,7 @@ void stereoCam::doStereoFrame(
 	     if (depth!=0) cvSet2D(depth,iRow,iCol, 
 				     // populate depth image with local frame info
 				     cvScalar(double(x), double(y), double(z), 0.0));
+				     //cvScalar(posW[0], posW[1], posW[2], 0));
 #endif
 	   }// write out result
 	   

@@ -7,6 +7,10 @@
 #include "utils.h"
 
 
+// forward declarations
+class stereoCam;
+
+
 // Abstract base class for robot sensor data
 class SensorData {
 public:
@@ -51,6 +55,7 @@ public:
 private:
   ArFunctor2C<SensorDataStereoCam, ArServerClient *, ArNetPacket *> 
     mySendFtr;
+  stereoCam *myCam;
 };
 
 #endif
