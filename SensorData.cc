@@ -166,7 +166,7 @@ void SensorDataLaser::send(ArServerClient *serverClient, ArNetPacket *packet)
 }
 
 
-// Adds service to the server
+// Adds laser data service to the server
 void SensorDataLaser::addData()
 {
   myServer->addData("getSensorDataLaser",// packet name
@@ -175,4 +175,117 @@ void SensorDataLaser::addData()
      		    "no arguments",	// description of arguments
      		   			// needed from client
      		    "sends a packet containing 3d co-ordinates");
+}
+
+
+SensorDataStereoCam::SensorDataStereoCam(ArServerBase *server, 
+    ArRobot *robot)
+  : SensorData(server, robot),
+    mySendFtr(this, &SensorDataStereoCam::send)
+{
+  addData();
+}
+
+
+// prepares a packet consisting of data read from stereocamera
+//
+// -----------------
+// IMAGE HEIGHT
+// IMAGE WIDTH
+// NUMBER OF CHANNELS IN EACH PIXEL
+// PIXEL 1 X
+// PIXEL 1 Y
+// PIXEL 1 Z
+// PIXEL 1 COLOR 1
+// PIXEL 1 COLOR 2
+// PIXEL 1 COLOR 3
+// PIXEL 2 X
+// PIXEL 2 Y
+// PIXEL 2 Z
+// PIXEL 2 COLOR 1
+// PIXEL 2 COLOR 2
+// PIXEL 2 COLOR 3
+//   .
+//   .
+// -----------------
+void SensorDataStereoCam::send(ArServerClient *serverClient, 
+    ArNetPacket *packet)
+{
+  /*
+  // The width and height take on specific values. Change with
+  // caution. Other values may not work with doStereoFrame.
+  static const int width = 320;
+  static const int height = 240;
+  IplImage *coordImg = 
+    cvCreateImage(cvSize(width,height), IPL_DEPTH_64F, 3);
+  IplImage *colorImg = 
+    cvCreateImage(cvSize(width,height), IPL_DEPTH_8U, 3);
+
+  // It is necessary to instantiate a stereoCam object each
+  // time to get new frames.
+  stereoCam cam;
+  // Capture an image with colors and another with co-ordinates
+  cam.doStereoFrame(colorImg, NULL, coordImg, NULL);
+
+  // Get information from the co-ordinates image
+  int coordImgHeight = coordImg->height;
+  int coordImgWidth = coordImg->width;
+  int coordImgChannels = coordImg->nChannels;
+  // pointer access to raw data for fast element access
+  double *coordImgData = (double *)coordImg->imageData;
+  // Get the number of items in each row
+  int coordImgRowCount = coordImg->widthStep/(sizeof(double));
+
+  // Get information from the colors image
+  int colorImgHeight = colorImg->height;
+  int colorImgWidth = colorImg->width;
+  int colorImgChannels = colorImg->nChannels;
+  // pointer access to raw data for fast element access
+  char *colorImgData = (char *)colorImg->imageData;
+  // Get the number of items in each row
+  int colorImgRowCount = colorImg->widthStep/(sizeof(char));
+
+  double coordVal;
+  int colorVal;
+  int startIndex = 0;
+  int endIndex = 25;
+
+  ArNetPacket dataPacket;
+  // Fill packet with header information
+  dataPacket.byte4ToBuf(endIndex - startIndex);
+  dataPacket.byte4ToBuf(endIndex - startIndex);
+  dataPacket.byte4ToBuf(coordImgChannels);
+
+  for (int i = startIndex; i < endIndex; i++) {
+    for (int j = startIndex; j < endIndex; j++) {
+      // fill coordinate information
+      for (int k = 0; k < coordImgChannels; k++) {
+	coordVal = 
+	  coordImgData[i*coordImgRowCount + j*coordImgChannels + k]; 
+	dataPacket.doubleToBuf(coordVal);
+      }
+      // pack color information
+      for (int k = 0; k < colorImgChannels; k++) {
+	colorVal = 
+	  colorImgData[i*colorImgRowCount + j*colorImgChannels + k]; 
+	dataPacket.byteToBuf(colorVal);
+      }
+    }
+  }
+
+  // send packet to client
+  serverClient->sendPacketTcp(&dataPacket);
+  */
+}
+
+
+// Adds stereo camera data service to the server
+void SensorDataStereoCam::addData()
+{
+  myServer->addData("getSensorDataStereoCam",// packet type name
+                    "send StereoCamera data",// short description
+	  	    &(this->mySendFtr),	// callback functor
+                    "no arguments",	// description of arguments
+		 			// needed from client
+		    "sends a packet containing stereocam readings");
 }
