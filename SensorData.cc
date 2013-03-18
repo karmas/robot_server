@@ -2,6 +2,7 @@
 #include <ctime>
 #include <sys/time.h>
 
+#include "stereoCamera.h"
 #include "SensorData.h"
 
 
@@ -10,6 +11,9 @@ SensorData::SensorData(ArServerBase *server, ArRobot *robot)
 {
 }
 
+///////////////////////////////
+//  SensorDataLaser
+///////////////////////////////
 
 const double SensorDataLaser::pi = 3.14159165f;
 const double SensorDataLaser::toRadian = pi/180;
@@ -178,6 +182,10 @@ void SensorDataLaser::addData()
 }
 
 
+///////////////////////////////
+//  SensorDataStereoCam
+///////////////////////////////
+
 SensorDataStereoCam::SensorDataStereoCam(ArServerBase *server, 
     ArRobot *robot)
   : SensorData(server, robot),
@@ -211,7 +219,6 @@ SensorDataStereoCam::SensorDataStereoCam(ArServerBase *server,
 void SensorDataStereoCam::send(ArServerClient *serverClient, 
     ArNetPacket *packet)
 {
-  /*
   // The width and height take on specific values. Change with
   // caution. Other values may not work with doStereoFrame.
   static const int width = 320;
@@ -275,7 +282,6 @@ void SensorDataStereoCam::send(ArServerClient *serverClient,
 
   // send packet to client
   serverClient->sendPacketTcp(&dataPacket);
-  */
 }
 
 
