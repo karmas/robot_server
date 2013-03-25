@@ -204,8 +204,7 @@ SensorDataStereoCam::SensorDataStereoCam(ArServerBase *server,
 // prepares a packet consisting of data read from stereocamera
 //
 // -----------------
-// IMAGE HEIGHT
-// IMAGE WIDTH
+// NUMBER OF PIXELS
 // NUMBER OF CHANNELS IN EACH PIXEL
 // PIXEL 1 X
 // PIXEL 1 Y
@@ -256,34 +255,42 @@ void SensorDataStereoCam::send(ArServerClient *serverClient,
   int colorImgRowCount = colorImg->widthStep/(sizeof(char));
 
   double coordVal;
+  // using 16bits which gives about 65m of range
+  short coordValCompressed;
   char colorVal;
-  int startIndex = 0;
-  int endIndex = 25;
+
+  int rowsSend = 10;
+  int packetSize = coordImgWidth*(3+3*2)*rowsSend;
 
   ArNetPacket dataPacket;
   // Fill packet with header information
-  dataPacket.byte4ToBuf(endIndex - startIndex);
-  dataPacket.byte4ToBuf(endIndex - startIndex);
+  dataPacket.byte4ToBuf(coordImgWidth*rowsSend);
   dataPacket.byte4ToBuf(coordImgChannels);
 
-  for (int i = startIndex; i < endIndex; i++) {
-    for (int j = startIndex; j < endIndex; j++) {
+  static int rowStart = 0;
+  rowStart += rowsSend;
+  if (rowStart >= coordImgHeight) rowStart = 0;
+
+  int rowEnd = rowStart + rowsSend;
+
+  for (int i = rowStart; i < rowEnd; i++) {
+    for (int j = 0; j < coordImgWidth; j++) {
       // fill coordinate information
       for (int k = 0; k < coordImgChannels; k++) {
-	coordVal = 
-	  coordImgData[i*coordImgRowCount + j*coordImgChannels + k]; 
-	dataPacket.doubleToBuf(coordVal);
+        coordVal = 
+          coordImgData[i*coordImgRowCount + j*coordImgChannels + k]; 
+        coordValCompressed = coordVal * 1000;
+        dataPacket.byte2ToBuf(coordValCompressed);
       }
       // pack color information
       for (int k = 0; k < colorImgChannels; k++) {
-	colorVal = 
-	  colorImgData[i*colorImgRowCount + j*colorImgChannels + k]; 
-	dataPacket.byteToBuf(colorVal);
+        colorVal = 
+          colorImgData[i*colorImgRowCount + j*colorImgChannels + k]; 
+        dataPacket.byteToBuf(colorVal);
       }
     }
   }
 
-  // send packet to client
   serverClient->sendPacketTcp(&dataPacket);
 }
 
