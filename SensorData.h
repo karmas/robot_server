@@ -16,6 +16,9 @@ class SensorData {
 public:
   SensorData(ArServerBase *server, ArRobot *robot);
   virtual ~SensorData() {}
+
+  static const double pi;
+  static const double toRadian;
 protected:
   ArServerBase *myServer;
   ArRobot *myRobot;
@@ -34,9 +37,6 @@ public:
   void send(ArServerClient *serverClient, ArNetPacket *packet);
   void addData();
 
-  static const double pi;
-  static const double toRadian;
-
 private:
   ArFunctor2C<SensorDataLaser, ArServerClient *, ArNetPacket *> mySendFtr;
   ArLaser *myLaser;
@@ -54,6 +54,7 @@ public:
   virtual ~SensorDataStereoCam();
   void send(ArServerClient *serverClient, ArNetPacket *packet);
   void addData();
+
 private:
   ArFunctor2C<SensorDataStereoCam, ArServerClient *, ArNetPacket *> 
     mySendFtr;

@@ -15,8 +15,8 @@ SensorData::SensorData(ArServerBase *server, ArRobot *robot)
 //  SensorDataLaser
 ///////////////////////////////
 
-const double SensorDataLaser::pi = 3.14159165f;
-const double SensorDataLaser::toRadian = pi/180;
+const double SensorData::pi = 3.14159165f;
+const double SensorData::toRadian = pi/180;
 
 
 // sets the laser pointer now to the first laser in the robot
@@ -273,19 +273,36 @@ void SensorDataStereoCam::send(ArServerClient *serverClient,
 
   int rowEnd = rowStart + rowsSend;
 
+  short localX, localY, localZ;
+  short globalX, globalY, globalZ;
+  double alpha;
+
+  int pixelIndex;
   for (int i = rowStart; i < rowEnd; i++) {
     for (int j = 0; j < coordImgWidth; j++) {
-      // fill coordinate information
-      for (int k = 0; k < coordImgChannels; k++) {
-        coordVal = 
-          coordImgData[i*coordImgRowCount + j*coordImgChannels + k]; 
-        coordValCompressed = coordVal * 1000;
-        dataPacket.byte2ToBuf(coordValCompressed);
-      }
+      pixelIndex = i*coordImgRowCount + j*coordImgChannels;
+      // directly access co-ordinate information
+      // change from m to mm
+      localX = 1000 * coordImgData[pixelIndex + 2]; 
+      localY = 1000 * coordImgData[pixelIndex]; 
+      localZ = 1000 * coordImgData[pixelIndex + 1]; 
+
+      // rotate to global reference frame
+      alpha = myRobot->getTh()*toRadian;
+      globalX = localX*cos(alpha) - localY*sin(alpha);
+      globalY = localY*cos(alpha) + localX*sin(alpha);
+
+      // translate to global reference frame
+      globalX += myRobot->getX();
+      globalY += myRobot->getY();
+
+      dataPacket.byte2ToBuf(globalX);
+      dataPacket.byte2ToBuf(globalY);
+      dataPacket.byte2ToBuf(localZ);
+
       // pack color information
       for (int k = 0; k < colorImgChannels; k++) {
-        colorVal = 
-          colorImgData[i*colorImgRowCount + j*colorImgChannels + k]; 
+        colorVal = colorImgData[pixelIndex + k]; 
         dataPacket.byteToBuf(colorVal);
       }
     }
