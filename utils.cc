@@ -6,6 +6,7 @@
 #include "ArNetworking.h"
 
 #include "utils.h"
+#include "SensorData.h"
 
 
 // some message display routines
@@ -180,4 +181,12 @@ void testLaser(ArRobot *robot)
     }
   }
   std::cout << std::endl;
+}
+
+// Function to properly close the sensor. This is important for the stereo
+// camera.
+void escapePressed(SensorData *sd)
+{
+  delete sd;
+  Aria::exit();
 }

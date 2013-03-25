@@ -15,6 +15,7 @@ class stereoCam;
 class SensorData {
 public:
   SensorData(ArServerBase *server, ArRobot *robot);
+  virtual ~SensorData() {}
 protected:
   ArServerBase *myServer;
   ArRobot *myRobot;
@@ -50,6 +51,7 @@ private:
 class SensorDataStereoCam : public SensorData {
 public:
   SensorDataStereoCam(ArServerBase *server, ArRobot *robot);
+  virtual ~SensorDataStereoCam();
   void send(ArServerClient *serverClient, ArNetPacket *packet);
   void addData();
 private:

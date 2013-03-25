@@ -55,6 +55,11 @@ SensorDataLaser::SensorDataLaser(ArServerBase *server, ArRobot *robot,
   addData();
 }
 
+// properly shut down the stereo camera
+SensorDataStereoCam::~SensorDataStereoCam()
+{
+  delete myCam;
+}
 
 /* @param serverClient: Connection manager between the server and the 
  * 	client. It is provided by the Aria framework and is used to

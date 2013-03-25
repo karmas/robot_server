@@ -112,7 +112,7 @@ int main(int argc, char **argv)
   // This object handles sending of laser data packets from server 
   //SensorDataLaser sdl(&server, &robot, tilt, laserToRobotTranslation,
   //    		      maxRange, minRange);
-  SensorDataStereoCam sdsc(&server, &robot);
+  SensorData *sensorData = new SensorDataStereoCam(&server, &robot);
 
   // Enable the motors
   robot.enableMotors();
@@ -120,9 +120,19 @@ int main(int argc, char **argv)
   robot.runAsync(true);
   server.runAsync();
 
-  // Let the robot wait for manual exit from user
-  robot.waitForRunExit();
+  // Add a key handler 
+  ArKeyHandler keyHandler;
+  Aria::setKeyHandler(&keyHandler);
+  ArFunctor *escapeFtr = 
+    new ArGlobalFunctor1<SensorData *>(escapePressed, sensorData);
+  keyHandler.addKeyHandler(ArKeyHandler::ESCAPE, escapeFtr);
+
+  // check for key presses
+  while (server.getRunningWithLock()) {
+    keyHandler.checkKeys();
+    ArUtil::sleep(100);
+  }
 
   // Necessary closing of Aria framework
-  Aria::shutdown();
+  Aria::exit();
 }

@@ -6,6 +6,7 @@
 // forward declarations
 class ArArgumentParser;
 class ArRobot;
+class SensorData;
 
 // used to pack x,y,z values together
 struct A3dpoint {
@@ -28,6 +29,7 @@ void configureRobot(ArArgumentParser &parser,
 		    int *maxRange,
 		    int *minRange);
 void testLaser(ArRobot *robot);
+void escapePressed(SensorData *sd);
 
 // distinguish invalid values
 const int INVALID = -123456489;
