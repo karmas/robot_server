@@ -232,7 +232,6 @@ void SensorDataStereoCam::send(ArServerClient *serverClient,
     cvCreateImage(cvSize(width,height), IPL_DEPTH_64F, 3);
   IplImage *colorImg = 
     cvCreateImage(cvSize(width,height), IPL_DEPTH_8U, 3);
-
   // Capture an image with colors and another with co-ordinates
   myCam->doStereoFrame(colorImg, NULL, coordImg, NULL);
 
@@ -254,32 +253,38 @@ void SensorDataStereoCam::send(ArServerClient *serverClient,
   // Get the number of items in each row
   int colorImgRowCount = colorImg->widthStep/(sizeof(char));
 
+  // types for co-ordinate values
   double coordVal;
   // using 16bits which gives about 65m of range
   short coordValCompressed;
   char colorVal;
 
-  int rowsSend = 10;
-  int packetSize = coordImgWidth*(3+3*2)*rowsSend;
+  // calculate max number of points to fill the packet
+  int pointSizeBytes = 3 * 2 // coordinates * coordinates size in bytes
+    		     + 3 * 1; // colors * colors size in bytes
+  int maxPoints = packet->MAX_DATA_LENGTH / pointSizeBytes - 1;
 
-  ArNetPacket dataPacket;
-  // Fill packet with header information
-  dataPacket.byte4ToBuf(coordImgWidth*rowsSend);
-  dataPacket.byte4ToBuf(coordImgChannels);
-
+  // remember the starting row
   static int rowStart = 0;
-  rowStart += rowsSend;
+  // reset if we have sent the last row of the image
   if (rowStart >= coordImgHeight) rowStart = 0;
-
-  int rowEnd = rowStart + rowsSend;
 
   short localX, localY, localZ;
   short globalX, globalY, globalZ;
   double alpha;
-
   int pixelIndex;
-  for (int i = rowStart; i < rowEnd; i++) {
-    for (int j = 0; j < coordImgWidth; j++) {
+  int addedPoints = 0;
+  // storage for valid data
+  std::vector<short> points;
+  std::vector<char> colors;
+
+  // go through and select only valid points from data
+  int i;
+  bool loopExit = false;
+  for (i = rowStart; i < coordImgHeight; i += 1) {
+    if (loopExit) break;
+
+    for (int j = 0; j < coordImgWidth; j += 1) {
       pixelIndex = i*coordImgRowCount + j*coordImgChannels;
       // directly access co-ordinate information
       // change from m to mm
@@ -287,25 +292,51 @@ void SensorDataStereoCam::send(ArServerClient *serverClient,
       localY = 1000 * coordImgData[pixelIndex]; 
       localZ = 1000 * coordImgData[pixelIndex + 1]; 
 
+      // skip if invalid
+      if (invalidPoint(localX, localY, localZ)) continue;
+
       // rotate to global reference frame
       alpha = myRobot->getTh()*toRadian;
       globalX = localX*cos(alpha) - localY*sin(alpha);
       globalY = localY*cos(alpha) + localX*sin(alpha);
-
       // translate to global reference frame
       globalX += myRobot->getX();
       globalY += myRobot->getY();
 
-      dataPacket.byte2ToBuf(globalX);
-      dataPacket.byte2ToBuf(globalY);
-      dataPacket.byte2ToBuf(localZ);
-
-      // pack color information
+      // store co-ordinate information
+      points.push_back(globalX);
+      points.push_back(globalY);
+      points.push_back(localZ);
+      // store color information
       for (int k = 0; k < colorImgChannels; k++) {
         colorVal = colorImgData[pixelIndex + k]; 
-        dataPacket.byteToBuf(colorVal);
+	colors.push_back(colorVal);
+      }
+      addedPoints++;
+
+      // exit loops if we reach max number of points
+      if (addedPoints >= maxPoints) {
+	loopExit = true;
+	break;
       }
     }
+  }
+  // next time start here
+  rowStart = i;
+
+  ArNetPacket dataPacket;
+  // Fill packet with header information
+  dataPacket.byte4ToBuf(points.size() * 2);
+  dataPacket.byte4ToBuf(coordImgChannels);
+
+  // fill packet with point co-ordinate and color
+  for (size_t i = 0; i < points.size(); i += 3) {
+    dataPacket.byte2ToBuf(points[i]);
+    dataPacket.byte2ToBuf(points[i+1]);
+    dataPacket.byte2ToBuf(points[i+2]);
+    dataPacket.byteToBuf(colors[i]);
+    dataPacket.byteToBuf(colors[i+1]);
+    dataPacket.byteToBuf(colors[i+2]);
   }
 
   serverClient->sendPacketTcp(&dataPacket);
@@ -321,4 +352,10 @@ void SensorDataStereoCam::addData()
                     "no arguments",	// description of arguments
 		 			// needed from client
 		    "sends a packet containing stereocam readings");
+}
+
+template<typename T>
+bool SensorDataStereoCam::invalidPoint(T x, T y, T z)
+{
+  return (x == 0 && y == 0 && z == 0);
 }

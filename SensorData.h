@@ -56,6 +56,8 @@ public:
   void addData();
 
 private:
+  template<typename T> bool invalidPoint(T x, T y, T z);
+
   ArFunctor2C<SensorDataStereoCam, ArServerClient *, ArNetPacket *> 
     mySendFtr;
   stereoCam *myCam;
