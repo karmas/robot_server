@@ -268,8 +268,8 @@ void SensorDataStereoCam::send(ArServerClient *serverClient,
   // reset if we have sent the last row of the image
   if (rowStart >= coordImgHeight) rowStart = 0;
 
-  short localX, localY, localZ;
-  short globalX, globalY, globalZ;
+  double localX, localY, localZ;
+  double globalX, globalY, globalZ;
   double alpha;
   int pixelIndex;
   int addedPoints = 0;
@@ -280,16 +280,15 @@ void SensorDataStereoCam::send(ArServerClient *serverClient,
   // go through and select only valid points from data
   int i;
   bool loopExit = false;
-  for (i = rowStart; i < coordImgHeight; i += 1) {
+  for (i = rowStart; i < coordImgHeight; i += 2) {
     if (loopExit) break;
 
-    for (int j = 0; j < coordImgWidth; j += 1) {
+    for (int j = 0; j < coordImgWidth; j += 2) {
       pixelIndex = i*coordImgRowCount + j*coordImgChannels;
       // directly access co-ordinate information
-      // change from m to mm
-      localX = 1000 * coordImgData[pixelIndex + 2]; 
-      localY = 1000 * coordImgData[pixelIndex]; 
-      localZ = 1000 * coordImgData[pixelIndex + 1]; 
+      localX = coordImgData[pixelIndex + 2]; 
+      localY = coordImgData[pixelIndex]; 
+      localZ = coordImgData[pixelIndex + 1]; 
 
       // skip if invalid
       if (invalidPoint(localX, localY, localZ)) continue;
@@ -302,10 +301,10 @@ void SensorDataStereoCam::send(ArServerClient *serverClient,
       globalX += myRobot->getX();
       globalY += myRobot->getY();
 
-      // store co-ordinate information
-      points.push_back(globalX);
-      points.push_back(globalY);
-      points.push_back(localZ);
+      // convert to mm and store
+      points.push_back(globalX * 1000);
+      points.push_back(globalY * 1000);
+      points.push_back(localZ * 1000);
       // store color information
       for (int k = 0; k < colorImgChannels; k++) {
         colorVal = colorImgData[pixelIndex + k]; 
@@ -355,5 +354,5 @@ void SensorDataStereoCam::addData()
 template<typename T>
 bool SensorDataStereoCam::invalidPoint(T x, T y, T z)
 {
-  return (x == 0 && y == 0 && z == 0);
+  return (x == 0.0 && y == 0.0 && z == 0.0);
 }
