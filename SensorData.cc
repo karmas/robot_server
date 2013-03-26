@@ -205,7 +205,6 @@ SensorDataStereoCam::SensorDataStereoCam(ArServerBase *server,
 //
 // -----------------
 // NUMBER OF PIXELS
-// NUMBER OF CHANNELS IN EACH PIXEL
 // PIXEL 1 X
 // PIXEL 1 Y
 // PIXEL 1 Z
@@ -327,7 +326,6 @@ void SensorDataStereoCam::send(ArServerClient *serverClient,
   ArNetPacket dataPacket;
   // Fill packet with header information
   dataPacket.byte4ToBuf(points.size() * 2);
-  dataPacket.byte4ToBuf(coordImgChannels);
 
   // fill packet with point co-ordinate and color
   for (size_t i = 0; i < points.size(); i += 3) {

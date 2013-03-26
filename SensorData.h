@@ -34,8 +34,8 @@ public:
   SensorDataLaser(ArServerBase *server, ArRobot *robot,
       		  int tilt, const A3dpoint &laserToRobotTranslation,
 		  int maxRange, int minRange);
-  void send(ArServerClient *serverClient, ArNetPacket *packet);
-  void addData();
+  virtual void send(ArServerClient *serverClient, ArNetPacket *packet);
+  virtual void addData();
 
 private:
   ArFunctor2C<SensorDataLaser, ArServerClient *, ArNetPacket *> mySendFtr;
@@ -52,8 +52,8 @@ class SensorDataStereoCam : public SensorData {
 public:
   SensorDataStereoCam(ArServerBase *server, ArRobot *robot);
   virtual ~SensorDataStereoCam();
-  void send(ArServerClient *serverClient, ArNetPacket *packet);
-  void addData();
+  virtual void send(ArServerClient *serverClient, ArNetPacket *packet);
+  virtual void addData();
 
 private:
   template<typename T> bool invalidPoint(T x, T y, T z);
