@@ -352,8 +352,8 @@ void SensorDataStereoCam::addData()
 // The stereo camera my assign points which do not exist so rule them out
 bool SensorDataStereoCam::invalidPoint(double x, double y, double z)
 {
-  // reject closer than 1cm
-  if (x < 10.0) return true;
+  // reject closer than 2cm
+  if (abs(x) < 20.0) return true;
   // reject below 1m
   if (z < -100.0) return true;
   return false;
