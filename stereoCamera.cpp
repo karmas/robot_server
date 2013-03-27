@@ -199,7 +199,7 @@ void stereoCam::transformBumbleBee2World(double from[3], double to[3], double pa
 
   // move the point to the center of the PT unit
   to[0] = 1000*from[0] - eX; //Reye to Hcenter front
-  to[1] = 1000*from[1] + eY; //Hcenter down Y to center PT front
+  to[1] = 1000*from[1] - eY; //Hcenter down Y to center PT front
   to[2] = 1000*from[2]; //PT center front to PT center center
   // do pan around Y
   double s = sin(D2R(pan)), c = cos(D2R(pan));
@@ -211,9 +211,9 @@ void stereoCam::transformBumbleBee2World(double from[3], double to[3], double pa
   ty = c*to[1]-s*to[2];
   tz = s*to[1]+c*to[2];
   to[1]=ty; to[2]=tz;
-  // move the point to the center of the robot proj on ground
-  to[1] += pY + 279.0; // PT center to topplate center to ground proj PT center center
-  to[2] += 255-pZ; // ground proj PT center center to ground proj robot center center
+  // move the point to the center of the robot
+  to[1] -= pY; // PT center to topplate center
+  to[2] += pZ; // PT center to robot center
   // rotate the axis from BB to robot
   ty = -to[0]; tx = to[2]; tz = to[1];
   to[0]=tx; to[1]=ty; to[2]=-tz;
@@ -582,8 +582,8 @@ void stereoCam::doStereoFrame(
 #ifdef OPENCV
 	     if (depth!=0) cvSet2D(depth,iRow,iCol, 
 				     // populate depth image with local frame info
-				     cvScalar(double(x), double(y), double(z), 0.0));
-				     //cvScalar(posW[0], posW[1], posW[2], 0));
+				     //cvScalar(double(x), double(y), double(z), 0.0));
+				     cvScalar(posW[0], posW[1], posW[2], 0));
 #endif
 	   }// write out result
 	   
