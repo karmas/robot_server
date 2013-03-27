@@ -55,11 +55,6 @@ SensorDataLaser::SensorDataLaser(ArServerBase *server, ArRobot *robot,
   addData();
 }
 
-// properly shut down the stereo camera
-SensorDataStereoCam::~SensorDataStereoCam()
-{
-  delete myCam;
-}
 
 /* @param serverClient: Connection manager between the server and the 
  * 	client. It is provided by the Aria framework and is used to
@@ -195,9 +190,17 @@ SensorDataStereoCam::SensorDataStereoCam(ArServerBase *server,
     ArRobot *robot)
   : SensorData(server, robot),
     mySendFtr(this, &SensorDataStereoCam::send),
+    myPTU(new ArDPPTU(myRobot)),
     myCam(new stereoCam)
 {
   addData();
+}
+
+// properly shut down the stereo camera
+SensorDataStereoCam::~SensorDataStereoCam()
+{
+  delete myPTU;
+  delete myCam;
 }
 
 
@@ -232,7 +235,9 @@ void SensorDataStereoCam::send(ArServerClient *serverClient,
   IplImage *colorImg = 
     cvCreateImage(cvSize(width,height), IPL_DEPTH_8U, 3);
   // Capture an image with colors and another with co-ordinates
-  myCam->doStereoFrame(colorImg, NULL, coordImg, NULL);
+  myCam->doStereoFrame(colorImg, NULL, coordImg, NULL,
+      myPTU->getPan(), myPTU->getTilt(), 
+      myRobot->getX(), myRobot->getY(), myRobot->getTh());
 
   // Get information from the co-ordinates image
   int coordImgHeight = coordImg->height;
@@ -244,8 +249,6 @@ void SensorDataStereoCam::send(ArServerClient *serverClient,
   int coordImgRowCount = coordImg->widthStep/(sizeof(double));
 
   // Get information from the colors image
-  int colorImgHeight = colorImg->height;
-  int colorImgWidth = colorImg->width;
   int colorImgChannels = colorImg->nChannels;
   // pointer access to raw data for fast element access
   char *colorImgData = (char *)colorImg->imageData;
@@ -271,7 +274,8 @@ void SensorDataStereoCam::send(ArServerClient *serverClient,
   double localX, localY, localZ;
   double globalX, globalY, globalZ;
   double alpha;
-  int pixelIndex;
+  int coordIndex;
+  int colorIndex;
   int addedPoints = 0;
   // storage for valid data
   std::vector<short> points;
@@ -284,30 +288,38 @@ void SensorDataStereoCam::send(ArServerClient *serverClient,
     if (loopExit) break;
 
     for (int j = 0; j < coordImgWidth; j += 2) {
-      pixelIndex = i*coordImgRowCount + j*coordImgChannels;
+      // get indices to co-ordinate and color data
+      coordIndex = i*coordImgRowCount + j*coordImgChannels;
+      colorIndex = i*colorImgRowCount + j*colorImgChannels;
+
       // directly access co-ordinate information
-      localX = coordImgData[pixelIndex + 2]; 
-      localY = coordImgData[pixelIndex]; 
-      localZ = coordImgData[pixelIndex + 1]; 
+      localX = coordImgData[coordIndex + 2]; 
+      localY = coordImgData[coordIndex]; 
+      localZ = coordImgData[coordIndex + 1]; 
 
       // skip if invalid
       if (invalidPoint(localX, localY, localZ)) continue;
 
+      // image is inverted so rotate it around x axis
+      globalX = localX;
+      globalY = localY*cos(pi) - localZ*sin(pi);
+      globalZ = localZ*cos(pi) + localY*sin(pi);
+
       // rotate to global reference frame
-      alpha = myRobot->getTh()*toRadian;
-      globalX = localX*cos(alpha) - localY*sin(alpha);
-      globalY = localY*cos(alpha) + localX*sin(alpha);
-      // translate to global reference frame
-      globalX += myRobot->getX();
-      globalY += myRobot->getY();
+      //alpha = myRobot->getTh()*toRadian;
+      //globalX = localX*cos(alpha) - localY*sin(alpha);
+      //globalY = localY*cos(alpha) + localX*sin(alpha);
+      //// translate to global reference frame
+      //globalX += myRobot->getX();
+      //globalY += myRobot->getY();
 
       // convert to mm and store
       points.push_back(globalX * 1000);
       points.push_back(globalY * 1000);
-      points.push_back(localZ * 1000);
+      points.push_back(globalZ * 1000);
       // store color information
       for (int k = 0; k < colorImgChannels; k++) {
-        colorVal = colorImgData[pixelIndex + k]; 
+        colorVal = colorImgData[colorIndex + k]; 
 	colors.push_back(colorVal);
       }
       addedPoints++;
@@ -351,8 +363,15 @@ void SensorDataStereoCam::addData()
 		    "sends a packet containing stereocam readings");
 }
 
-template<typename T>
-bool SensorDataStereoCam::invalidPoint(T x, T y, T z)
+// The stereo camera my assign points which do not exist so rule them out
+bool SensorDataStereoCam::invalidPoint(double x, double y, double z)
 {
-  return (x == 0.0 && y == 0.0 && z == 0.0);
+  // x is forward distance from robot so it cannot be negative
+  // reject less than 1 cm
+  if (x < 0.01) return true;
+  // z is vertical distance from robot
+  // reject if a meter below the robot center
+  // the image returned by dostereoframe is inverted so compare with 1.0
+  if (z > 1.0) return true;
+  return false;
 }

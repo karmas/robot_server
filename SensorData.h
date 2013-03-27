@@ -56,10 +56,11 @@ public:
   virtual void addData();
 
 private:
-  template<typename T> bool invalidPoint(T x, T y, T z);
+  bool invalidPoint(double x, double y, double z);
 
   ArFunctor2C<SensorDataStereoCam, ArServerClient *, ArNetPacket *> 
     mySendFtr;
+  ArDPPTU *myPTU;
   stereoCam *myCam;
 };
 
