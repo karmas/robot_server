@@ -271,6 +271,7 @@ void SensorDataStereoCam::send(ArServerClient *serverClient,
   // reset if we have sent the last row of the image
   if (rowStart >= coordImgHeight) rowStart = 0;
 
+  double origX, origY, origZ;
   double localX, localY, localZ;
   double globalX, globalY, globalZ;
   double alpha;
@@ -293,30 +294,37 @@ void SensorDataStereoCam::send(ArServerClient *serverClient,
       colorIndex = i*colorImgRowCount + j*colorImgChannels;
 
       // directly access co-ordinate information
-      localX = coordImgData[coordIndex + 2]; 
-      localY = coordImgData[coordIndex]; 
-      localZ = coordImgData[coordIndex + 1]; 
+      origX = coordImgData[coordIndex + 2]; 
+      origY = coordImgData[coordIndex]; 
+      origZ = coordImgData[coordIndex + 1]; 
 
       // skip if invalid
-      if (invalidPoint(localX, localY, localZ)) continue;
+      if (invalidPoint(origX, origY, origZ)) continue;
 
       // image is inverted so rotate it around x axis
-      globalX = localX;
-      globalY = localY*cos(pi) - localZ*sin(pi);
-      globalZ = localZ*cos(pi) + localY*sin(pi);
+      localX = origX;
+      localY = origY*cos(pi) - origZ*sin(pi);
+      localZ = origZ*cos(pi) + origY*sin(pi);
 
       // rotate to global reference frame
-      //alpha = myRobot->getTh()*toRadian;
-      //globalX = localX*cos(alpha) - localY*sin(alpha);
-      //globalY = localY*cos(alpha) + localX*sin(alpha);
-      //// translate to global reference frame
-      //globalX += myRobot->getX();
-      //globalY += myRobot->getY();
+      alpha = myRobot->getTh()*toRadian;
+      globalX = localX*cos(alpha) - localY*sin(alpha);
+      globalY = localY*cos(alpha) + localX*sin(alpha);
+      globalZ = localZ;
 
-      // convert to mm and store
-      points.push_back(globalX * 1000);
-      points.push_back(globalY * 1000);
-      points.push_back(globalZ * 1000);
+      // convert to mm 
+      globalX *= 1000;
+      globalY *= 1000;
+      globalZ *= 1000;
+
+      // translate to global reference frame
+      globalX += myRobot->getX();
+      globalY += myRobot->getY();
+
+      // store
+      points.push_back(globalX);
+      points.push_back(globalY);
+      points.push_back(globalZ);
       // store color information
       for (int k = 0; k < colorImgChannels; k++) {
         colorVal = colorImgData[colorIndex + k]; 
