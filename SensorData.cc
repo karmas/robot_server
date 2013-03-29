@@ -203,17 +203,22 @@ SensorDataStereoCam::~SensorDataStereoCam()
   delete myCam;
 }
 
-
-// prepares a packet consisting of data read from stereocamera
+// Gets global readings from stereo camera which are packed into short 
+// datatypes. Hence the range for data is about [-32m, 32m]  from the 
+// starting location.
 //
+// Format of data packet
 // -----------------
+// ROBOT X CO-ORDINATE (DOUBLE)
+// ROBOT Y CO-ORDINATE (DOUBLE)
+// ROBOT HEADING (DOUBLE measured in degrees)
 // NUMBER OF PIXELS
-// PIXEL 1 X
-// PIXEL 1 Y
-// PIXEL 1 Z
-// PIXEL 1 COLOR R
-// PIXEL 1 COLOR G
-// PIXEL 1 COLOR B
+// PIXEL 1 X (SHORT)
+// PIXEL 1 Y (SHORT)
+// PIXEL 1 Z (SHORT)
+// PIXEL 1 COLOR R (CHAR)
+// PIXEL 1 COLOR G (CHAR)
+// PIXEL 1 COLOR B (CHAR)
 // PIXEL 2 X
 // PIXEL 2 Y
 // PIXEL 2 Z
@@ -234,6 +239,13 @@ void SensorDataStereoCam::send(ArServerClient *serverClient,
     cvCreateImage(cvSize(width,height), IPL_DEPTH_64F, 3);
   IplImage *colorImg = 
     cvCreateImage(cvSize(width,height), IPL_DEPTH_8U, 3);
+
+  static ArNetPacket dataPacket;
+  // Fill robot location and heading
+  dataPacket.doubleToBuf(myRobot->getX());
+  dataPacket.doubleToBuf(myRobot->getY());
+  dataPacket.doubleToBuf(myRobot->getTh());
+
   // Capture an image with colors and another with co-ordinates
   myCam->doStereoFrame(colorImg, NULL, coordImg, NULL,
       myPTU->getPan(), myPTU->getTilt(), 
@@ -264,7 +276,8 @@ void SensorDataStereoCam::send(ArServerClient *serverClient,
   // calculate max number of points to fill the packet
   int pointSizeBytes = 3 * 2 // coordinates * coordinates size in bytes
     		     + 3 * 1; // colors * colors size in bytes
-  int maxPoints = packet->MAX_DATA_LENGTH / pointSizeBytes - 1;
+  int maxPoints = (packet->MAX_DATA_LENGTH - 
+      3*sizeof(double) + sizeof(int)) / pointSizeBytes;
 
   // remember the starting row
   static int rowStart = 0;
@@ -272,8 +285,6 @@ void SensorDataStereoCam::send(ArServerClient *serverClient,
   if (rowStart >= coordImgHeight) rowStart = 0;
 
   double origX, origY, origZ;
-  double localX, localY, localZ;
-  double globalX, globalY, globalZ;
   double alpha;
   int coordIndex;
   int colorIndex;
@@ -320,10 +331,8 @@ void SensorDataStereoCam::send(ArServerClient *serverClient,
   // next time start here
   rowStart = i;
 
-  ArNetPacket dataPacket;
   // Fill packet with header information
   dataPacket.byte4ToBuf(points.size() / 3);
-
   // fill packet with point co-ordinate and color
   for (size_t i = 0; i < points.size(); i += 3) {
     dataPacket.byte2ToBuf(points[i]);
@@ -335,6 +344,7 @@ void SensorDataStereoCam::send(ArServerClient *serverClient,
   }
 
   serverClient->sendPacketTcp(&dataPacket);
+  dataPacket.empty();
 }
 
 
@@ -354,7 +364,7 @@ bool SensorDataStereoCam::invalidPoint(double x, double y, double z)
 {
   // reject closer than 2cm
   if (abs(x) < 20.0) return true;
-  // reject below 1m
-  if (z < -100.0) return true;
+  // reject below 1/2m
+  if (z < -500.0) return true;
   return false;
 }

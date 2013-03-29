@@ -569,7 +569,7 @@ void stereoCam::doStereoFrame(
 			      &z // x,y,z, in bumblebee frarame
 			       );
 	   nPoints++; posBB[0]=x; posBB[1]=y; posBB[2]=z;
-	   if (z>0.25 && z< 5.0) {// near and far distance (meters) filter
+	   if (z>0.1 && z< 5.0) {// near and far distance (meters) filter
 	     transformBumbleBee2World(posBB, posW, pan, tilt, rx, ry, rth);
 	     if (out!=0) 
 	       fprintf(out,
