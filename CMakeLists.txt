@@ -23,6 +23,7 @@ link_directories(/usr/local/Aria/lib/)
 link_directories(/usr/local/BumbleBee2/newPGR/pgrlibdcstereo)
 link_directories(/usr/local/triclops/lib)
 
+add_definitions(-g)
 # Create the executable
 add_executable(${PROG} ${SRC})
 

@@ -25,6 +25,7 @@ protected:
 
   virtual void send(ArServerClient *serverClient, ArNetPacket *packet) = 0;
   virtual void addData() = 0;
+  void robotToBuf(ArNetPacket *packet);
 };
 
 
@@ -53,15 +54,26 @@ public:
   SensorDataStereoCam(ArServerBase *server, ArRobot *robot);
   virtual ~SensorDataStereoCam();
   virtual void send(ArServerClient *serverClient, ArNetPacket *packet);
+  virtual void send2(ArServerClient *serverClient, ArNetPacket *packet);
   virtual void addData();
+
+  // compress coordinates to this type
+  typedef short COORDINATE_TYPE;
 
 private:
   bool invalidPoint(double x, double y, double z);
 
   ArFunctor2C<SensorDataStereoCam, ArServerClient *, ArNetPacket *> 
     mySendFtr;
+  ArFunctor2C<SensorDataStereoCam, ArServerClient *, ArNetPacket *> 
+    mySendFtr2;
   ArDPPTU *myPTU;
   stereoCam *myCam;
+  const short myCaptureWidth;  // in pixels
+  const short myCaptureHeight; // in pixels
+  const short myPointSize;  // bytes needed for one point
+  int myRowIncrement;
+  int myColIncrement;
 };
 
 #endif
