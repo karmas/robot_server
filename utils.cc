@@ -69,8 +69,8 @@ void configureRobot(ArArgumentParser &parser,
 
   // get longest argument name
   int longestArgIndex = 0;
-  int longestArgLength = strlen(configArgs[longestArgIndex]);
-  for (int i = 1; i < sizeof(configArgs)/sizeof(configArgs[0]); i++) {
+  size_t longestArgLength = strlen(configArgs[longestArgIndex]);
+  for (size_t i = 1; i < sizeof(configArgs)/sizeof(configArgs[0]); i++) {
     if (strlen(configArgs[i]) > longestArgLength) {
       longestArgIndex = i;
       longestArgLength = strlen(configArgs[longestArgIndex]);

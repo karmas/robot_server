@@ -288,12 +288,6 @@ void SensorDataStereoCam::send(ArServerClient *serverClient,
   // Get the number of items in each row
   int colorImgRowCount = colorImg->widthStep/(sizeof(char));
 
-  // types for co-ordinate values
-  double coordVal;
-  // using 16bits which gives a range of about (-32m, 32m)
-  COORDINATE_TYPE coordValCompressed;
-  char colorVal;
-
   // subsampling variables
   static int rowStart = 0;
   static int rowEnd = coordImgHeight/2;
@@ -304,7 +298,6 @@ void SensorDataStereoCam::send(ArServerClient *serverClient,
   if (currRowStart >= rowEnd) currRowStart = rowStart;
 
   double origX, origY, origZ;
-  double alpha;
   int coordIndex;
   int colorIndex;
   int addedPoints = 0;
@@ -409,12 +402,6 @@ void SensorDataStereoCam::send2(ArServerClient *serverClient,
   // Get the number of items in each row
   int colorImgRowCount = colorImg->widthStep/(sizeof(char));
 
-  // types for co-ordinate values
-  double coordVal;
-  // using 16bits which gives a range of about (-32m, 32m)
-  COORDINATE_TYPE coordValCompressed;
-  char colorVal;
-
   // subsampling variables
   static int rowStart = coordImgHeight/2;
   static int rowEnd = coordImgHeight;
@@ -425,7 +412,6 @@ void SensorDataStereoCam::send2(ArServerClient *serverClient,
   if (currRowStart >= rowEnd) currRowStart = rowStart;
 
   double origX, origY, origZ;
-  double alpha;
   int coordIndex;
   int colorIndex;
   int addedPoints = 0;
