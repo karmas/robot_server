@@ -7,7 +7,8 @@
 #include "compress.h"
 #include "SensorData.h"
 
-#define STEREO_CAM_SUBSAMPLE
+//#define STEREO_CAM_SUBSAMPLE
+#define STEREO_CAM_COMPRESS
 
 
 const double SensorData::pi = 3.14159165f;
@@ -257,7 +258,11 @@ void SensorDataStereoCam::send(
 {
   // figure out max points to fill data packet
   static ArNetPacket dataPacket;
+#ifdef STEREO_CAM_COMPRESS
+  static const int POINT_SIZE = 7;
+#else
   static const int POINT_SIZE = myPointSize;
+#endif
   static const int MAX_POINTS =
     (dataPacket.MAX_DATA_LENGTH - 
      (3*sizeof(double) + sizeof(int))) / POINT_SIZE;
@@ -281,9 +286,14 @@ void SensorDataStereoCam::send(
   dataPacket.byte4ToBuf(nPoints);
   // fill packet with point co-ordinate and color
   for (size_t i = 0; i < nPoints; i += 1) {
+#ifdef STEREO_CAM_COMPRESS
+    dataPacket.uByte4ToBuf(
+	compressPoint(points[i].x,points[i].y,points[i].z));
+#else
     dataPacket.byte2ToBuf(points[i].x);
     dataPacket.byte2ToBuf(points[i].y);
     dataPacket.byte2ToBuf(points[i].z);
+#endif
     dataPacket.byteToBuf(points[i].r);
     dataPacket.byteToBuf(points[i].g);
     dataPacket.byteToBuf(points[i].b);
@@ -300,7 +310,11 @@ void SensorDataStereoCam::send2(
 {
   // figure out max points to fill data packet
   static ArNetPacket dataPacket;
+#ifdef STEREO_CAM_COMPRESS
+  static const int POINT_SIZE = 7;
+#else
   static const int POINT_SIZE = myPointSize;
+#endif
   static const int MAX_POINTS =
     (dataPacket.MAX_DATA_LENGTH - 
      (3*sizeof(double) + sizeof(int))) / POINT_SIZE;
@@ -324,9 +338,14 @@ void SensorDataStereoCam::send2(
   dataPacket.byte4ToBuf(nPoints);
   // fill packet with point co-ordinate and color
   for (size_t i = 0; i < nPoints; i += 1) {
+#ifdef STEREO_CAM_COMPRESS
+    dataPacket.uByte4ToBuf(
+	compressPoint(points[i].x,points[i].y,points[i].z));
+#else
     dataPacket.byte2ToBuf(points[i].x);
     dataPacket.byte2ToBuf(points[i].y);
     dataPacket.byte2ToBuf(points[i].z);
+#endif
     dataPacket.byteToBuf(points[i].r);
     dataPacket.byteToBuf(points[i].g);
     dataPacket.byteToBuf(points[i].b);
