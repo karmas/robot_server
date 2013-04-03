@@ -4,6 +4,7 @@
 #include <cassert>
 
 #include "stereoCamera.h"
+#include "compress.h"
 #include "SensorData.h"
 
 #define STEREO_CAM_SUBSAMPLE
@@ -92,7 +93,8 @@ SensorDataLaser::SensorDataLaser(ArServerBase *server, ArRobot *robot,
  * Need to translate laser based co-ordinates to robot frame before
  * rotating using robot heading
  */
-void SensorDataLaser::send(ArServerClient *serverClient, ArNetPacket *packet)
+void SensorDataLaser::send(
+    ArServerClient *serverClient, ArNetPacket *packet)
 {
   const std::list<ArSensorReading *> * readings = NULL;
   std::list<ArSensorReading *>::const_iterator it;
@@ -250,141 +252,118 @@ SensorDataStereoCam::~SensorDataStereoCam()
 //   .
 //   .
 // -----------------
-void SensorDataStereoCam::send(ArServerClient *serverClient, 
-    ArNetPacket *packet)
+void SensorDataStereoCam::send(
+    ArServerClient *serverClient, ArNetPacket *packet)
 {
-  IplImage *coordImg = 
-    cvCreateImage(cvSize(myCaptureWidth,myCaptureHeight), IPL_DEPTH_64F, 3);
-  IplImage *colorImg = 
-    cvCreateImage(cvSize(myCaptureWidth,myCaptureHeight), IPL_DEPTH_8U, 3);
-
   // figure out max points to fill data packet
   static ArNetPacket dataPacket;
+  static const int POINT_SIZE = myPointSize;
   static const int MAX_POINTS =
     (dataPacket.MAX_DATA_LENGTH - 
-     (3*sizeof(double) + sizeof(int))) / myPointSize;
-
-  // Fill robot location and heading
-  robotToBuf(&dataPacket);
-
-  // Capture an image with colors and another with co-ordinates
-  myCam->doStereoFrame(colorImg, NULL, coordImg, NULL,
-      myPTU->getPan(), myPTU->getTilt(), 
-      myRobot->getX(), myRobot->getY(), myRobot->getTh());
-
-  // Get information from the co-ordinates image
-  int coordImgHeight = coordImg->height;
-  int coordImgWidth = coordImg->width;
-  int coordImgChannels = coordImg->nChannels;
-  // pointer access to raw data for fast element access
-  double *coordImgData = (double *)coordImg->imageData;
-  // Get the number of items in each row
-  int coordImgRowCount = coordImg->widthStep/(sizeof(double));
-
-  // Get information from the colors image
-  int colorImgChannels = colorImg->nChannels;
-  // pointer access to raw data for fast element access
-  char *colorImgData = (char *)colorImg->imageData;
-  // Get the number of items in each row
-  int colorImgRowCount = colorImg->widthStep/(sizeof(char));
+     (3*sizeof(double) + sizeof(int))) / POINT_SIZE;
 
   // subsampling variables
   static int rowStart = 0;
-  static int rowEnd = coordImgHeight/2;
-
+  static int rowEnd = myCaptureHeight/2;
   // for current packet start here
   static int currRowStart = rowStart;
   // reset if we have sent the last row of the image
   if (currRowStart >= rowEnd) currRowStart = rowStart;
 
-  double origX, origY, origZ;
-  int coordIndex;
-  int colorIndex;
-  int addedPoints = 0;
-  // storage for valid data
-  std::vector<short> points;
-  std::vector<char> colors;
-
-  // go through and select only valid points from data
-  int i;
-  bool loopExit = false;
-  for (i = currRowStart; i < rowEnd; i += myRowIncrement) {
-    if (loopExit) break;
-
-    for (int j = 0; j < coordImgWidth; j += myColIncrement) {
-      // get indices to co-ordinate and color data
-      coordIndex = i*coordImgRowCount + j*coordImgChannels;
-      colorIndex = i*colorImgRowCount + j*colorImgChannels;
-
-      // directly access co-ordinate information
-      origX = coordImgData[coordIndex]; 
-      origY = coordImgData[coordIndex + 1]; 
-      origZ = coordImgData[coordIndex + 2]; 
-
-      // skip if invalid
-      if (invalidPoint(origX, origY, origZ)) continue;
-
-      // store coordinates and color
-      points.push_back(origX);
-      points.push_back(origY);
-      points.push_back(origZ);
-      colors.push_back(colorImgData[colorIndex + 2]);
-      colors.push_back(colorImgData[colorIndex + 1]);
-      colors.push_back(colorImgData[colorIndex]);
-      addedPoints++;
-
-      // exit loops if we reach max number of points
-      if (addedPoints >= MAX_POINTS) {
-	loopExit = true;
-	break;
-      }
-    }
-  }
-  // next time start here
-  currRowStart = i;
+  // Fill robot location and heading
+  robotToBuf(&dataPacket);
+  // get valid points from the image and get next row to start from
+  std::vector<PointInfo> points;
+  currRowStart = getValidPoints(points, currRowStart, rowEnd, MAX_POINTS);
 
   // Fill packet with header information
-  dataPacket.byte4ToBuf(points.size() / 3);
+  const size_t nPoints = points.size();
+  dataPacket.byte4ToBuf(nPoints);
   // fill packet with point co-ordinate and color
-  for (size_t i = 0; i < points.size(); i += 3) {
-    dataPacket.byte2ToBuf(points[i]);
-    dataPacket.byte2ToBuf(points[i+1]);
-    dataPacket.byte2ToBuf(points[i+2]);
-    dataPacket.byteToBuf(colors[i]);
-    dataPacket.byteToBuf(colors[i+1]);
-    dataPacket.byteToBuf(colors[i+2]);
+  for (size_t i = 0; i < nPoints; i += 1) {
+    dataPacket.byte2ToBuf(points[i].x);
+    dataPacket.byte2ToBuf(points[i].y);
+    dataPacket.byte2ToBuf(points[i].z);
+    dataPacket.byteToBuf(points[i].r);
+    dataPacket.byteToBuf(points[i].g);
+    dataPacket.byteToBuf(points[i].b);
   }
 
   dataPacket.finalizePacket();
   serverClient->sendPacketTcp(&dataPacket);
   dataPacket.empty();
-
-  cvReleaseImage(&colorImg);
-  cvReleaseImage(&coordImg);
 }
 
-// send the lower half of image
-void SensorDataStereoCam::send2(ArServerClient *serverClient, 
-    ArNetPacket *packet)
+// compresses the stereo camera magnitudes
+void SensorDataStereoCam::send2(
+    ArServerClient *serverClient, ArNetPacket *packet)
 {
-  IplImage *coordImg = 
-    cvCreateImage(cvSize(myCaptureWidth,myCaptureHeight), IPL_DEPTH_64F, 3);
-  IplImage *colorImg = 
-    cvCreateImage(cvSize(myCaptureWidth,myCaptureHeight), IPL_DEPTH_8U, 3);
-
   // figure out max points to fill data packet
   static ArNetPacket dataPacket;
+  static const int POINT_SIZE = myPointSize;
   static const int MAX_POINTS =
     (dataPacket.MAX_DATA_LENGTH - 
-     (3*sizeof(double) + sizeof(int))) / myPointSize;
+     (3*sizeof(double) + sizeof(int))) / POINT_SIZE;
+
+  // subsampling variables
+  static int rowStart = myCaptureHeight/2;
+  static int rowEnd = myCaptureHeight;
+  // for current packet start here
+  static int currRowStart = rowStart;
+  // reset if we have sent the last row of the image
+  if (currRowStart >= rowEnd) currRowStart = rowStart;
 
   // Fill robot location and heading
   robotToBuf(&dataPacket);
+  // get valid points from the image and get next row to start from
+  std::vector<PointInfo> points;
+  currRowStart = getValidPoints(points, currRowStart, rowEnd, MAX_POINTS);
+
+  // Fill packet with header information
+  const size_t nPoints = points.size();
+  dataPacket.byte4ToBuf(nPoints);
+  // fill packet with point co-ordinate and color
+  for (size_t i = 0; i < nPoints; i += 1) {
+    dataPacket.byte2ToBuf(points[i].x);
+    dataPacket.byte2ToBuf(points[i].y);
+    dataPacket.byte2ToBuf(points[i].z);
+    dataPacket.byteToBuf(points[i].r);
+    dataPacket.byteToBuf(points[i].g);
+    dataPacket.byteToBuf(points[i].b);
+  }
+
+  dataPacket.finalizePacket();
+  serverClient->sendPacketTcp(&dataPacket);
+  dataPacket.empty();
+}
+
+// @params: address of pointers which should be NULL
+// @return: image information in the pointers
+//   deallocation should be handled by caller
+void SensorDataStereoCam::getImage(IplImage **coordImg, IplImage **colorImg)
+{
+  *coordImg = 
+    cvCreateImage(cvSize(myCaptureWidth,myCaptureHeight), IPL_DEPTH_64F, 3);
+  *colorImg = 
+    cvCreateImage(cvSize(myCaptureWidth,myCaptureHeight), IPL_DEPTH_8U, 3);
 
   // Capture an image with colors and another with co-ordinates
-  myCam->doStereoFrame(colorImg, NULL, coordImg, NULL,
+  myCam->doStereoFrame(*colorImg, NULL, *coordImg, NULL,
       myPTU->getPan(), myPTU->getTilt(), 
       myRobot->getX(), myRobot->getY(), myRobot->getTh());
+}
+
+// @param points: fill valid points from image here
+// @param rowStart: row number to start getting points from
+// @param maxPoints: max points to fill
+// @return: next row to start collecting points from
+int SensorDataStereoCam::getValidPoints(std::vector<PointInfo> &points,
+    int rowStart, int rowEnd, int maxPoints)
+{
+  // Get current image coordinates and color
+  IplImage *coordImg = NULL;
+  IplImage *colorImg = NULL;
+  getImage(&coordImg, &colorImg);
 
   // Get information from the co-ordinates image
   int coordImgHeight = coordImg->height;
@@ -402,27 +381,15 @@ void SensorDataStereoCam::send2(ArServerClient *serverClient,
   // Get the number of items in each row
   int colorImgRowCount = colorImg->widthStep/(sizeof(char));
 
-  // subsampling variables
-  static int rowStart = coordImgHeight/2;
-  static int rowEnd = coordImgHeight;
-
-  // for current packet start here
-  static int currRowStart = rowStart;
-  // reset if we have sent the last row of the image
-  if (currRowStart >= rowEnd) currRowStart = rowStart;
-
   double origX, origY, origZ;
   int coordIndex;
   int colorIndex;
   int addedPoints = 0;
-  // storage for valid data
-  std::vector<short> points;
-  std::vector<char> colors;
 
   // go through and select only valid points from data
-  int i;
   bool loopExit = false;
-  for (i = currRowStart; i < rowEnd; i += myRowIncrement) {
+  int i;
+  for (i=rowStart; i < coordImgHeight && i < rowEnd; i += myRowIncrement) {
     if (loopExit) break;
 
     for (int j = 0; j < coordImgWidth; j += myColIncrement) {
@@ -439,44 +406,25 @@ void SensorDataStereoCam::send2(ArServerClient *serverClient,
       if (invalidPoint(origX, origY, origZ)) continue;
 
       // store coordinates and color
-      points.push_back(origX);
-      points.push_back(origY);
-      points.push_back(origZ);
-      colors.push_back(colorImgData[colorIndex + 2]);
-      colors.push_back(colorImgData[colorIndex + 1]);
-      colors.push_back(colorImgData[colorIndex]);
+      points.push_back(
+	  PointInfo(origX, origY, origZ,
+	    colorImgData[colorIndex + 2], 
+	    colorImgData[colorIndex + 1],
+	    colorImgData[colorIndex]));
       addedPoints++;
 
       // exit loops if we reach max number of points
-      if (addedPoints >= MAX_POINTS) {
+      if (addedPoints >= maxPoints) {
 	loopExit = true;
 	break;
       }
     }
   }
-  // next time start here
-  currRowStart = i;
 
-  // Fill packet with header information
-  dataPacket.byte4ToBuf(points.size() / 3);
-  // fill packet with point co-ordinate and color
-  for (size_t i = 0; i < points.size(); i += 3) {
-    dataPacket.byte2ToBuf(points[i]);
-    dataPacket.byte2ToBuf(points[i+1]);
-    dataPacket.byte2ToBuf(points[i+2]);
-    dataPacket.byteToBuf(colors[i]);
-    dataPacket.byteToBuf(colors[i+1]);
-    dataPacket.byteToBuf(colors[i+2]);
-  }
-
-  dataPacket.finalizePacket();
-  serverClient->sendPacketTcp(&dataPacket);
-  dataPacket.empty();
-
-  cvReleaseImage(&colorImg);
   cvReleaseImage(&coordImg);
+  cvReleaseImage(&colorImg);
+  return i + 1;
 }
-
 
 // Adds stereo camera data service to the server
 void SensorDataStereoCam::addData()

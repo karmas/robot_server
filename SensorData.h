@@ -3,6 +3,7 @@
 
 #include "Aria.h"
 #include "ArNetworking.h"
+#include <cv.h>
 
 #include "utils.h"
 
@@ -54,14 +55,29 @@ public:
   SensorDataStereoCam(ArServerBase *server, ArRobot *robot);
   virtual ~SensorDataStereoCam();
   virtual void send(ArServerClient *serverClient, ArNetPacket *packet);
-  virtual void send2(ArServerClient *serverClient, ArNetPacket *packet);
+  void send2(ArServerClient *serverClient, ArNetPacket *packet);
   virtual void addData();
 
   // compress coordinates to this type
   typedef short COORDINATE_TYPE;
 
 private:
+  struct PointInfo {
+    PointInfo(double X, double Y, double Z,
+	char R, char G, char B)
+      : x(X), y(Y), z(Z), r(R), g(G), b(B) { }
+    double x;
+    double y;
+    double z;
+    char r;
+    char g;
+    char b;
+  };
+
   bool invalidPoint(double x, double y, double z);
+  void getImage(IplImage **coordImg, IplImage **colorImg);
+  int getValidPoints(std::vector<PointInfo> &points,
+    int rowStart, int rowEnd, int maxPoints);
 
   ArFunctor2C<SensorDataStereoCam, ArServerClient *, ArNetPacket *> 
     mySendFtr;

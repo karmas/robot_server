@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.6)
 project(SERVER)
 
 # Source files
-set(SRC stereoCamera.cpp utils.cc SensorData.cc server.cc)
+set(SRC stereoCamera.cpp utils.cc compress.cc SensorData.cc server.cc)
 # Program name
 set(PROG server)
 
