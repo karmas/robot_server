@@ -3,7 +3,9 @@
 #include <sys/time.h>
 #include <cassert>
 
+#ifdef STEREO_CAMERA
 #include "stereoCamera.h"
+#endif
 #include "compress.h"
 #include "SensorData.h"
 
@@ -104,7 +106,6 @@ void SensorDataLaser::send(
   double distance = 0.0;
   double rawX = 0.0;
   double rawY = 0.0;
-  double rawZ = 0.0;
 
   double localX = 0.0;
   double localY = 0.0;
@@ -141,7 +142,6 @@ void SensorDataLaser::send(
       // tilted laser as reference frame
       rawX = distance * cos(theta);
       rawY = distance * sin(theta);
-      rawZ = 0.0;
 
       // rotate on z-axis to account for the tilt
       // now the laser reference frame is parallel with robot's
