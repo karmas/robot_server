@@ -49,6 +49,8 @@ private:
 };
 
 
+#ifdef STEREO_CAMERA
+
 // Sends stereo camera data
 class SensorDataStereoCam : public SensorData {
 public:
@@ -91,5 +93,7 @@ private:
   int myRowIncrement;
   int myColIncrement;
 };
+
+#endif
 
 #endif

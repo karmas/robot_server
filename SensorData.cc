@@ -200,6 +200,8 @@ void SensorDataLaser::addData()
 //  SensorDataStereoCam
 ///////////////////////////////
 
+#ifdef STEREO_CAMERA
+
 // Set various properties for image capture
 SensorDataStereoCam::SensorDataStereoCam(ArServerBase *server, 
     ArRobot *robot)
@@ -357,6 +359,8 @@ void SensorDataStereoCam::send2(
 }
 
 // @params: address of pointers which should be NULL
+// @func: if compression is used, global transformation is not performed
+//   client should handle transformation
 // @return: image information in the pointers
 //   deallocation should be handled by caller
 void SensorDataStereoCam::getImage(IplImage **coordImg, IplImage **colorImg)
@@ -369,7 +373,12 @@ void SensorDataStereoCam::getImage(IplImage **coordImg, IplImage **colorImg)
   // Capture an image with colors and another with co-ordinates
   myCam->doStereoFrame(*colorImg, NULL, *coordImg, NULL,
       myPTU->getPan(), myPTU->getTilt(), 
-      myRobot->getX(), myRobot->getY(), myRobot->getTh());
+#ifndef STEREO_CAM_COMPRESS
+      myRobot->getX(), myRobot->getY(), myRobot->getTh()
+#else
+      0, 0, 0
+#endif
+      );
 }
 
 // @param points: fill valid points from image here
@@ -471,3 +480,5 @@ bool SensorDataStereoCam::invalidPoint(double x, double y, double z)
   if (z < -500.0) return true;
   return false;
 }
+
+#endif

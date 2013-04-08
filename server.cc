@@ -109,10 +109,13 @@ int main(int argc, char **argv)
   ArServerModeRatioDrive modeRatioDrive(&server, &robot);
   ArServerModeWander modeWander(&server, &robot);
 
-  // This object handles sending of laser data packets from server 
-  //SensorDataLaser sdl(&server, &robot, tilt, laserToRobotTranslation,
-  //    		      maxRange, minRange);
+  // This object handles sending of sensor data from server
+#ifdef STEREO_CAMERA
   SensorData *sensorData = new SensorDataStereoCam(&server, &robot);
+#else
+  SensorData *sensorData = new SensorDataLaser(&server, &robot, tilt, 
+      laserToRobotTranslation, maxRange, minRange);
+#endif
 
   // Enable the motors
   robot.enableMotors();

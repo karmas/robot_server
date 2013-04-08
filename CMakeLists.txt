@@ -2,8 +2,16 @@ cmake_minimum_required(VERSION 2.6)
 
 project(SERVER)
 
+# compile stereoCamera.cpp only if robot has a stereo camera
+# change to OFF to ON for stereo camera
+option (STEREO_CAMERA
+  "Use stereo camera" OFF)
+if (STEREO_CAMERA)
+  set(SRC_STEREO stereoCamera.cpp)
+endif (STEREO_CAMERA)
+
 # Source files
-set(SRC stereoCamera.cpp utils.cc compress.cc SensorData.cc server.cc)
+set(SRC ${SRC_STEREO} utils.cc compress.cc SensorData.cc server.cc)
 # Program name
 set(PROG server)
 
