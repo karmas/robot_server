@@ -17,6 +17,7 @@ class SensorData {
 public:
   SensorData(ArServerBase *server, ArRobot *robot);
   virtual ~SensorData() {}
+  A3dpoint transformPoint(const ArPose &fromFrame, const A3dpoint &point);
 
   static const double pi;
   static const double toRadian;

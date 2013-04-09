@@ -30,6 +30,27 @@ void SensorData::robotToBuf(ArNetPacket *packet)
   packet->doubleToBuf(myRobot->getTh());
 }
 
+// @param fromPose: local x-y frame of reference which is offset
+//   from global x-y frame of reference (starting position for robot)
+// @param point: a point in the local frame
+// @return: same point in global frame
+A3dpoint SensorData::transformPoint(
+    const ArPose &fromFrame, const A3dpoint &point)
+{
+  A3dpoint pointTrans(point.x, point.y, point.z);
+  // angle of rotation
+  double theta = fromFrame.getTh()*toRadian;
+  double cosTheta = cos(theta);
+  double sinTheta = sin(theta);
+  // rotate to global reference frame
+  pointTrans.x = point.x * cosTheta - point.y * sinTheta;
+  pointTrans.y = point.x * sinTheta + point.y * cosTheta;
+  // translate to global reference frame
+  pointTrans.x += fromFrame.getX();
+  pointTrans.y += fromFrame.getY();
+  return pointTrans;
+}
+
 
 
 ///////////////////////////////
@@ -73,7 +94,6 @@ SensorDataLaser::SensorDataLaser(ArServerBase *server, ArRobot *robot,
   addData();
 }
 
-
 /* @param serverClient: Connection manager between the server and the 
  * 	client. It is provided by the Aria framework and is used to
  * 	transmit a packet to client.
@@ -107,13 +127,8 @@ void SensorDataLaser::send(
   double rawX = 0.0;
   double rawY = 0.0;
 
-  double localX = 0.0;
-  double localY = 0.0;
-  double localZ = 0.0;
-  double globalX = 0.0;
-  double globalY = 0.0;
-  // angle between local x-axis and global x-axis
-  double alpha = 0.0;
+  static ArPose localPose;
+  static A3dpoint localPoint(0, 0, 0);
   // angle of laser reading
   double theta = 0.0;
 
@@ -145,26 +160,21 @@ void SensorDataLaser::send(
 
       // rotate on z-axis to account for the tilt
       // now the laser reference frame is parallel with robot's
-      localX = rawX * cos(myTilt*toRadian);
-      localY = rawY;
-      localZ = rawX * sin(myTilt*toRadian);
+      localPoint.x = rawX * cos(myTilt*toRadian);
+      localPoint.y = rawY;
+      localPoint.z = rawX * sin(myTilt*toRadian);
 
       // translate to robot reference frame
-      localX += myLaserToRobotTranslation.x;
-      localY += myLaserToRobotTranslation.y;
-      localZ += myLaserToRobotTranslation.z;
+      localPoint.x += myLaserToRobotTranslation.x;
+      localPoint.y += myLaserToRobotTranslation.y;
+      localPoint.z += myLaserToRobotTranslation.z;
 
-      // rotate to global reference frame
-      alpha = reading->getThTaken() * toRadian;
-      globalX = localX*cos(alpha) - localY*sin(alpha);
-      globalY = localY*cos(alpha) + localX*sin(alpha);
-
-      // translate to global reference frame
-      globalX += myRobot->getX();
-      globalY += myRobot->getY();
+      // pose of robot when reading was taken
+      localPose.setPose(ArPose(
+	    myRobot->getX(), myRobot->getY(), reading->getThTaken()));
 
       // remember the valid points
-      points.push_back(A3dpoint(globalX, globalY, localZ));
+      points.push_back(transformPoint(localPose, localPoint));
     }
   }
 
