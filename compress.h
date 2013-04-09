@@ -1,5 +1,5 @@
-#ifndef STEREO_CAM_COMPRESS
-#define STEREO_CAM_COMPRESS
+#ifndef COMPRESS
+#define COMPRESS
 
 bool checkBit(unsigned val, unsigned n);
 unsigned setBit(unsigned val, unsigned n);

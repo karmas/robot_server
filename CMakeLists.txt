@@ -5,7 +5,7 @@ project(SERVER)
 # compile stereoCamera.cpp only if robot has a stereo camera
 # change to OFF to ON for stereo camera
 option (STEREO_CAMERA
-  "Use stereo camera" OFF)
+  "Use stereo camera" ON)
 if (STEREO_CAMERA)
   set(SRC_STEREO stereoCamera.cpp)
   # Include headers for the stereocamera
@@ -13,6 +13,7 @@ if (STEREO_CAMERA)
   include_directories(/usr/local/triclops/include)
   # Required libraries for stereocamera
   set(StereoCamera_LIBS dc1394 pgrlibdcstereo triclops pnmutils)
+  add_definitions(-DSTEREO_CAMERA)
 endif (STEREO_CAMERA)
 
 # Source files

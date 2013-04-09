@@ -471,11 +471,13 @@ void SensorDataStereoCam::addData()
 		    "sends a packet containing stereocam readings");
 }
 
-// The stereo camera my assign points which do not exist so rule them out
+// @params: distances in mm
+// @func: The stereo camera may assign points which do not exist so rule 
+//   them out
 bool SensorDataStereoCam::invalidPoint(double x, double y, double z)
 {
-  // reject closer than 2cm
-  if (abs(x) < 20.0) return true;
+  // reject closer than 5cm
+  if (abs(x) < 50) return true;
   // reject below 1/2m
   if (z < -500.0) return true;
   return false;
